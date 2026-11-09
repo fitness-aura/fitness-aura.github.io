@@ -240,12 +240,21 @@ details.card[open] summary::after{content:"−"}
 .gopt{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;color:var(--ink)}
 .gopt.hl{border:2px solid var(--gold);background:var(--card)}.gopt b{display:block;font-size:15px}.gopt span{font-size:12px;color:var(--mut)}.gopt em{font-style:normal;font-weight:800;color:var(--gold2);font-size:16px;white-space:nowrap}
 .gspin{width:36px;height:36px;margin:10px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--gold);animation:gsp 1s linear infinite}@keyframes gsp{to{transform:rotate(360deg)}}
+#instHelp{display:none;position:fixed;inset:0;z-index:150;background:rgba(29,36,51,.45);align-items:flex-end;justify-content:center}
+.ihb{background:var(--bg);width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+.ihb h2{margin:0 0 4px;font-size:21px}.ihb .sub{margin-bottom:12px}
+.ihtabs{display:flex;background:var(--card2);border-radius:12px;padding:4px;margin-bottom:12px}.ihtabs button{flex:1;height:38px;border-radius:9px;background:none;color:var(--mut);font-weight:700}.ihtabs button.on{background:var(--card);color:var(--gold2);box-shadow:0 1px 3px rgba(80,60,20,.12)}
+.ihs{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.ihs .n{flex:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.ihs>div>b{display:block;margin-bottom:2px}.ihs>div>span{font-size:13.5px;color:var(--mut);line-height:1.4}
+.ihs .ico{display:inline-flex;vertical-align:middle;background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:2px 6px;margin:0 2px;color:var(--ink);font-weight:700;font-size:13px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="gate"></div>
 <div id="cal"></div>
+<div id="instHelp" onclick="if(event.target===this)instClose()"></div>
 <div class="toast" id="toast"></div>
 <div class="wrap">
   <div class="top">
@@ -1175,6 +1184,27 @@ window.upApply=async()=>{
   render(true);
 };
 
+
+/* ===================== AJUDA PARA INSTALAR ===================== */
+const UA=navigator.userAgent;
+const inApp=()=>/FBAN|FBAV|Instagram|Line\/|; wv\)|TikTok|Snapchat/i.test(UA);
+const isSafariIOS=()=>isIOS()&&!/CriOS|FxiOS|EdgiOS/i.test(UA);
+let instTab=null;
+function instSteps(t){
+  const st=(n,b,x)=>`<div class="ihs"><div class="n">${n}</div><div><b>${b}</b><span>${x}</span></div></div>`;
+  if(t==="app") return st(1,"Abra no navegador","Você está dentro de outro app (Instagram, Facebook...). Toque nos <span class='ico'>⋮</span> ou <span class='ico'>···</span> no canto da tela e escolha <b>Abrir no navegador</b> (Chrome no Android, Safari no iPhone).")+st(2,"Toque em Instalar de novo","Já no navegador, toque no botão Instalar da Aura e siga os passos.");
+  if(t==="safari") return st(1,"Toque em Compartilhar",`Na barra de baixo do Safari, toque no ícone <span class='ico'>⬆︎</span> (quadrado com seta para cima). No iPad ele fica no alto.`)+st(2,"Adicionar à Tela de Início","Role a lista e toque em <b>Adicionar à Tela de Início</b>. Se não aparecer, toque em <b>Editar Ações</b> e ative.")+st(3,"Confirme em Adicionar","Mantenha o nome Aura e toque em <b>Adicionar</b> no canto superior direito.")+st(4,"Abra pelo ícone","A Aura aparece na sua tela de início. Abra sempre por ela: fica em tela cheia, como um app.");
+  if(t==="chromeios") return st(1,"Toque em Compartilhar","No Chrome do iPhone, toque no ícone <span class='ico'>⬆︎</span> na barra de endereço.")+st(2,"Adicionar à Tela de Início","Toque em <b>Adicionar à Tela de Início</b> e depois em <b>Adicionar</b>.")+st(3,"Abra pelo ícone","Se a opção não aparecer, abra o link no <b>Safari</b> e siga a aba Safari.");
+  return st(1,"Toque no menu ⋮","No canto superior direito do Chrome, toque nos três pontinhos <span class='ico'>⋮</span>.")+st(2,"Instalar app","Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b> e depois <b>Instalar</b>).")+st(3,"Confirme em Instalar","Na janela que aparece, toque em <b>Instalar</b>. Em alguns segundos o ícone da Aura aparece no celular.")+st(4,"Abra pelo ícone","Abra sempre pelo ícone da Aura: fica em tela cheia e funciona até sem internet.");
+}
+function instRender(){
+  const h=document.getElementById("instHelp"); const t=instTab;
+  const tabs=t==="app"?"":`<div class="ihtabs">${[["chrome","Android · Chrome"],["safari","iPhone · Safari"]].map(([k,l])=>`<button class="${(t===k||(k==="safari"&&t==="chromeios"))?"on":""}" onclick="instTab='${k}';instRender()">${l}</button>`).join("")}</div>`;
+  h.innerHTML=`<div class="ihb"><h2>Instalar a Aura</h2><div class="sub">${t==="app"?"Para instalar, o link precisa estar aberto no navegador do celular.":"Leva 10 segundos. Depois é só abrir pelo ícone."}</div>${tabs}${instSteps(t)}<button class="big" onclick="instClose()">Entendi</button></div>`;
+  h.style.display="flex";
+}
+window.instOpen=()=>{ instTab=inApp()?"app":isIOS()?(isSafariIOS()?"safari":"chromeios"):"chrome"; instRender() };
+window.instClose=()=>{ document.getElementById("instHelp").style.display="none" };
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
 function shift(n){const d=fromIso(sel);d.setDate(d.getDate()+n);sel=iso(d);openEx=null;for(const k in draft)delete draft[k];render()}
@@ -1183,7 +1213,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 let deferredInstall=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); deferredInstall=e; render()});
 window.addEventListener("appinstalled",()=>{deferredInstall=null; toast("Aura instalada ✓"); render()});
-window.installAura=async()=>{ if(!deferredInstall){ toast(isIOS&&isIOS()?"Toque em Compartilhar e em Adicionar à Tela de Início":"Toque no menu ⋮ do Chrome e em Instalar app",true); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
+window.installAura=async()=>{ if(!deferredInstall){ instOpen(); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
 let isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone}catch(e){return false}};
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})) }
 /* ===================== CALENDÁRIO (toque na data) ===================== */
@@ -1217,7 +1247,6 @@ const G=()=>document.getElementById("gate");
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 function gInstHtml(){
   if(isStandalone()) return "";
-  if(isIOS()) return `<div class="hint" style="margin-bottom:14px"><b>Instale a Aura no iPhone</b><br>Toque em <b>Compartilhar</b> (quadrado com seta) e depois em <b>Adicionar à Tela de Início</b>.</div>`;
   return `<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`;
 }
 function gInstRefresh(){ const e=document.getElementById("gInst"); if(e) e.innerHTML=gInstHtml() }
