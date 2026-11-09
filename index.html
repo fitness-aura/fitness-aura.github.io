@@ -286,7 +286,7 @@ details.card[open] summary::after{content:"−"}
 
 <script>
 /* ===================== PLANO ===================== */
-const START = new Date(2026,10,9); // 09/11/2026
+let START = new Date(2026,10,9); // substituído pela data do plano de cada usuário
 const EX = {
   supino_reto:{n:"Supino reto com halteres",img:"supino_reto",m:"load",c:["Escápulas para trás e para baixo","Cotovelos a 45° a 60° do tronco","Desça até a linha do peito"]},
   squeeze:{n:"Squeeze press",img:"squeeze_press",m:"load",c:["Halteres colados o tempo todo","Aperte um contra o outro","Carga menor que o supino"]},
@@ -335,13 +335,13 @@ const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const fromIso=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const br=s=>{const d=fromIso(s);return `${pad(d.getDate())}/${pad(d.getMonth()+1)}`};
 function dayInfo(dateStr){
-  const d=fromIso(dateStr); const idx=Math.round((d-START)/864e5);
+  const d=fromIso(dateStr); const raw=Math.round((d-START)/864e5); const cyc=raw<0?0:Math.floor(raw/30); const idx=raw<0?raw:raw%30;
   const ph = idx<0?0: idx<7?0: idx<14?1: idx<21?2: idx<28?3:4;
   let s=WEEK[d.getDay()], note="";
   if(idx===0) note="Dia 1: antes de treinar, pese-se em jejum, meça a cintura e tire 3 fotos (registre no Fim do dia).";
   if(idx===28) note="Treino teste: tente bater as marcas do dia 1.";
   if(idx===29) note="Reavaliação: peso, cintura e fotos. Treino leve, RIR 3.";
-  return {idx,day:idx+1,inPlan:idx>=0&&idx<30,phase:ph,s,dow:d.getDay(),note,light:idx===29};
+  return {idx,day:idx+1,cyc,inPlan:idx>=0,phase:ph,s,dow:d.getDay(),note,light:idx===29};
 }
 function plannedSets(sets,info){return (info.phase===0||info.light)&&sets>1?Math.max(2,sets-1):sets}
 function treadBlocks(code,info){
@@ -407,6 +407,226 @@ const dayType=info=>info.s==="TENNIS"?"tenis":info.s==="REST"?"descanso":"treino
 
 // Ilustrações animadas (WebP); as demais seguem como imagem fixa
 const ANIM=new Set(["afundo_bulgaro","agachamento_goblet","crossover","crucifixo","desenvolvimento","elevacao_lateral","farmer_walk","flexao","lenhador","pallof","panturrilha","passada_lateral","pullover","puxada_frontal","remada_unilateral","rosca_direta","rosca_martelo","rotacao_externa","squeeze_press","step_up","stiff","supino_inclinado","supino_reto","triceps_corda","triceps_testa"]);
+/* ===================== PLANO PERSONALIZADO (gerado das respostas do questionário) ===================== */
+// Exercícios extras para quem treina em casa sem equipamento
+Object.assign(EX,{
+  agacho:{n:"Agachamento livre",img:null,m:"bw",c:["Pés na largura dos ombros","Quadril para trás e para baixo","Coxa paralela ao chão"]},
+  ponte:{n:"Ponte de glúteo",img:null,m:"bw",c:["Deitado, pés apoiados","Suba o quadril apertando o glúteo","Segure 1 s em cima"]},
+  superman:{n:"Superman no chão",img:null,m:"bw",c:["Deitado de bruços","Eleve braços e pernas juntos","Segure 2 s"]},
+  tri_banco:{n:"Tríceps no banco ou cadeira",img:null,m:"bw",c:["Mãos na borda, dedos para frente","Desça até 90° no cotovelo","Ombros longe das orelhas"]},
+  pike:{n:"Flexão pike (ombros)",img:null,m:"bw",c:["Quadril alto, corpo em V","Leve a cabeça em direção ao chão","Empurre de volta"]},
+  cardio_casa:{n:"Cardio em casa",img:null,m:"simple",c:["Polichinelo, corrida parada e escalador","30 s forte, 30 s leve"]}
+});
+const DEF_ANS={sexo:"Masculino",corpo:{idade:"35",altura:"175",peso:"80"},objetivo:"Recomposição",prazo:"3 meses",foco:["Corpo todo por igual"],nivel:"Intermediário",dias:"4",tempo:"60 min",horario:"Manhã",local:"Academia completa",esporte:["Nenhum"],rotina:"Sentado a maior parte do dia",sono:"7 a 8 h",restricoes:["Nenhuma"],naogosta:"",refeicoes:"5",cozinha:"Cozinho em casa",lesoes:["Nenhuma"],suplementos:["Nenhum"]};
+let PLANSIG="", PLANINFO={hora:"", horaTxt:"", person:"", prot:150, rules:[], sportDays:{}};
+const ans=()=>({...DEF_ANS,...((PROFILE&&PROFILE.answers)||{})});
+const PROT_T=()=>(MEALS.treino&&MEALS.treino.prot)||150;
+
+function calcMacros(a){
+  const c=a.corpo||{}; const kg=num(c.peso)||80, cm=num(c.altura)||175, age=num(c.idade)||35; const male=a.sexo!=="Feminino";
+  const bmr=10*kg+6.25*cm-5*age+(male?5:-161);
+  const rot=(a.rotina||"").startsWith("Fisicamente")?1.6:(a.rotina||"").startsWith("Moderadamente")?1.45:1.3;
+  const act=rot+0.04*Math.min(7,+a.dias||3);
+  const tdee=bmr*act;
+  const adj={"Perder gordura":0.80,"Hipertrofia":1.10,"Recomposição":0.88,"Performance esportiva":1.0,"Saúde e bem-estar":0.95}[a.objetivo]||0.9;
+  let kcal=Math.max(male?1600:1300,Math.round(tdee*adj/50)*50);
+  const h=cm/100, refKg=Math.min(kg,27*h*h);
+  const pf={"Saúde e bem-estar":1.6,"Performance esportiva":1.8}[a.objetivo]||2.0;
+  const prot=Math.round(refKg*pf); const fat=Math.max(male?55:45,Math.round(refKg*0.9));
+  const carb=Math.max(90,Math.round((kcal-prot*4-fat*9)/4)); kcal=prot*4+carb*4+fat*9;
+  return {kcal:Math.round(kcal),prot,carb,fat,agua:Math.max(4,Math.round(kg*0.035*2)),bmr:Math.round(bmr),tdee:Math.round(tdee)};
+}
+
+/* ---------- treino ---------- */
+const GPOOL={peito:["supino_reto","sup_incl","crucifixo","crossover","squeeze","flexao","supino_neutro","pullover"],costas:["puxada","remada","superman"],ombro:["desenv","elev_lat","pike"],
+  biceps:["rosca_direta","martelo"],triceps:["triceps_corda","tri_testa","tri_banco"],quad:["goblet","bulgaro","stepup","passada_lat","agacho"],post:["stiff","ponte","bulgaro"],
+  pant:["panturrilha"],core:["prancha","pallof","lenhador"],cond:["farmer"],saude:["rot_ext"]};
+const CABLE=new Set(["triceps_corda","crossover","puxada","pallof","lenhador"]);
+const DBELL=new Set(["supino_reto","sup_incl","crucifixo","squeeze","supino_neutro","pullover","remada","desenv","elev_lat","rosca_direta","martelo","tri_testa","goblet","stiff","farmer"]);
+const COMPOUND=new Set(["peito","costas","quad","post"]); const UPPER=new Set(["peito","costas","ombro","biceps","triceps"]), LOWER=new Set(["quad","post","pant","core"]);
+function exAllowed(k,a){
+  const loc=a.local||""; const inj=a.lesoes||[];
+  if(/sem equipamento/.test(loc)&&(CABLE.has(k)||DBELL.has(k)||k==="rot_ext")) return false;
+  if(/com halteres/.test(loc)&&CABLE.has(k)) return false;
+  if(/Academia/.test(loc)&&["agacho","superman","tri_banco","pike"].includes(k)) return false;
+  if(inj.includes("Ombro")&&["pullover","desenv","tri_testa","pike","crossover"].includes(k)) return false;
+  if(inj.includes("Joelho")&&["bulgaro","passada_lat","goblet","agacho","stepup"].includes(k)) return false;
+  if(inj.includes("Lombar")&&["stiff","farmer","pullover","superman"].includes(k)) return false;
+  if(inj.includes("Punho ou cotovelo")&&["flexao","tri_testa","tri_banco","pike"].includes(k)) return false;
+  if(inj.includes("Tornozelo")&&["passada_lat","panturrilha","stepup"].includes(k)) return false;
+  return true;
+}
+const FOCUS={"Peitoral":["peito"],"Costas":["costas"],"Ombros":["ombro"],"Braços":["biceps","triceps"],"Abdômen e cintura":["core"],"Glúteos":["post"],"Pernas":["quad","post"],"Panturrilhas":["pant"]};
+const TPL={
+  2:[["Corpo inteiro A",["quad","peito","costas","post","ombro","core","biceps","triceps"]],["Corpo inteiro B",["post","peito","costas","quad","ombro","core","triceps","biceps"]]],
+  3:[["Corpo inteiro A",["quad","peito","costas","ombro","core","biceps","triceps"]],["Corpo inteiro B",["post","peito","costas","quad","pant","core","triceps"]],["Corpo inteiro C",["quad","costas","peito","post","ombro","core","biceps"]]],
+  4:[["Superiores A",["peito","costas","peito","ombro","biceps","triceps","core"]],["Inferiores A",["quad","post","quad","pant","core","core"]],["Superiores B",["costas","peito","ombro","costas","triceps","biceps","core"]],["Inferiores B",["post","quad","post","pant","core","cond"]]],
+  5:[["Peito, ombros e tríceps",["peito","peito","ombro","peito","triceps","triceps","core"]],["Pernas e core",["quad","quad","post","post","pant","core","core"]],["Costas, ombros e bíceps",["costas","costas","ombro","ombro","biceps","biceps","core"]],["Corpo inteiro",["peito","quad","costas","cond","core","biceps","triceps"]],["Condicionamento e core",["CARDIO","saude","core","core"]]],
+  6:[["Empurrar A",["peito","ombro","peito","triceps","ombro","core"]],["Puxar A",["costas","costas","biceps","ombro","core","biceps"]],["Pernas A",["quad","post","quad","pant","core"]],["Empurrar B",["peito","peito","ombro","triceps","triceps","core"]],["Puxar B",["costas","costas","biceps","saude","core","biceps"]],["Pernas B",["post","quad","post","pant","core","cond"]]]
+};
+function buildSessions(a){
+  const nd=Math.max(2,Math.min(7,+a.dias||3)); const tpl=(TPL[Math.min(6,nd)]||TPL[3]).map(x=>[x[0],x[1].slice()]);
+  if(nd===7) tpl.push(["Condicionamento e core",["CARDIO","saude","core","core"]]);
+  const foco=(a.foco||[]).flatMap(f=>FOCUS[f]||[]);
+  const maxEx=({"30 min":4,"45 min":5,"60 min":6,"75 min ou mais":7}[a.tempo]||6)+((a.foco||[]).some(f=>FOCUS[f])&&a.tempo!=="30 min"?1:0);
+  const home=/casa/.test(a.local||"");
+  const fatGoal=["Perder gordura","Recomposição","Saúde e bem-estar"].includes(a.objetivo)||foco.includes("core");
+  const lvl=a.nivel||"Intermediário"; const obj=a.objetivo||"Recomposição";
+  const reps=(g)=>{ const c=COMPOUND.has(g);
+    if(obj==="Hipertrofia") return c?[8,12]:[10,15]; if(obj==="Performance esportiva") return c?[6,8]:[10,12];
+    if(obj==="Recomposição") return c?[8,12]:[10,15]; return c?[10,15]:[12,15]; };
+  const letters="ABCDEFG"; const out={}; const order=[];
+  tpl.forEach(([title,slots],si)=>{
+    const L=slots[0]==="CARDIO"?"Q":letters[si]; let sl=slots.filter(s=>s!=="CARDIO");
+    // foco: grupos prioritários entram primeiro e ganham espaço
+    if(L!=="Q"){ const up=/Superiores|Peito|Costas|Empurrar|Puxar|Corpo/.test(title), lo=/Inferiores|Pernas|Corpo/.test(title);
+      foco.forEach(g=>{ const comp=COMPOUND.has(g); const i=sl.indexOf(g); const at=g==="core"?Math.min(maxEx-1,sl.length):comp?0:Math.min(2,sl.length);
+        if(i>=0){ if(comp){ sl.splice(i,1); sl.unshift(g) } else if(g==="core"&&i>=maxEx){ sl.splice(i,1); sl.splice(at,0,g) } }
+        else if((UPPER.has(g)&&up)||(LOWER.has(g)&&lo)) sl.splice(at,0,g) }) }
+    const used=new Set(); const ex=[]; let n=0;
+    const cardioMin=L==="Q"?20:(fatGoal?({"30 min":8,"45 min":12,"60 min":15,"75 min ou mais":20}[a.tempo]||15):0);
+    if(L==="Q") ex.push([L+"1",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
+    for(const g of sl){ if(ex.filter(e=>e[1]!=="esteira"&&e[1]!=="cardio_casa").length>=maxEx) break;
+      const pool=(GPOOL[g]||[]).filter(k=>exAllowed(k,a)&&!used.has(k)); if(!pool.length) continue;
+      const k=pool[(si+n)%pool.length]; used.add(k); n++;
+      const E=EX[k]; const isF=foco.includes(g); const comp=COMPOUND.has(g);
+      let sets=lvl==="Iniciante"?2:3; if(isF||(lvl==="Avançado"&&comp&&ex.length<2)) sets++; sets=Math.min(4,sets);
+      let [r1,r2]=reps(g), rest=comp?(lvl==="Avançado"&&ex.length<2?120:90):60;
+      if(E.m==="time"){ r1=lvl==="Iniciante"?20:30; r2=lvl==="Iniciante"?30:45; rest=45 }
+      else if(E.m==="dist"){ r1=30; r2=40; rest=60 }
+      else if(g==="core"){ r1=10; r2=12; rest=45 }
+      else if(E.m==="bw"&&k==="flexao"){ r1=8; r2=25 }
+      if(k==="rot_ext"){ sets=2; r1=r2=15; rest=30 }
+      ex.push([L+(ex.length+1),k,sets,r1,r2,rest]);
+    }
+    if(L!=="Q"&&cardioMin) ex.push(["E",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
+    if(!home&&L!=="Q"&&!cardioMin) ex.push(["F","bike",1,8,8,0]);
+    out[L]={t:title,ex}; order.push(L);
+  });
+  return {sess:out,order};
+}
+function buildWeek(a,order){
+  const nd=Math.max(2,Math.min(7,+a.dias||3));
+  const sportDays={}; (SPORTS.items||[]).forEach(i=>(i.days||[]).forEach(d=>{ (sportDays[d]=sportDays[d]||[]).push(i) }));
+  const pref={2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,5,6],6:[1,2,3,4,5,6],7:[1,2,3,4,5,6,0]}[nd];
+  const fallback=[0,6,4,2,3,5,1];
+  const days=[]; pref.forEach(d=>{ if(sportDays[d]&&nd<7){ const alt=fallback.find(x=>!sportDays[x]&&!days.includes(x)&&!pref.includes(x)); days.push(alt!=null?alt:d) } else days.push(d) });
+  const ordered=[1,2,3,4,5,6,0].filter(d=>days.includes(d));
+  const W={}; [0,1,2,3,4,5,6].forEach(d=>W[d]=sportDays[d]?"TENNIS":"REST");
+  ordered.forEach((d,i)=>W[d]=order[i%order.length]);
+  return {W,sportDays};
+}
+
+/* ---------- dieta ---------- */
+// [nome, prot, carb, gord, kcal por 100 g, tags, unidade (g por unidade), nome da unidade]
+const FOOD={
+  frango:["frango grelhado",32,0,2.5,155,"carne"], patinho:["patinho moído",28,0,7,180,"carne"], peixe:["peixe grelhado (tilápia)",26,0,2.5,128,"peixe"],
+  ovo:["ovos",13,1,10,143,"ovo",50,"ovo"], whey:["whey protein",80,8,6,400,"lact",30,"dose"], wheyveg:["proteína vegetal em pó",75,5,6,380,"",30,"dose"],
+  iogurte:["iogurte natural",4,5,3,60,"lact"], queijo:["queijo minas",17,3,20,260,"lact"], cottage:["cottage",11,3,4,95,"lact"],
+  tofu:["tofu",12,2,7,120,""], grao:["grão-de-bico cozido",9,27,2.6,164,""], lentilha:["lentilha cozida",9,20,0.4,116,""],
+  arroz:["arroz",2.5,28,0.3,128,""], feijao:["feijão",5,14,0.5,77,""], batata:["batata inglesa",1.2,12,0,52,""], mandioca:["mandioca",0.6,30,0.3,125,""],
+  batatadoce:["batata-doce",0.6,18,0,77,""], tapioca:["tapioca (goma)",0,54,0,220,""], pao:["pão integral",9,43,3,250,"glut",25,"fatia"], aveia:["aveia",14,58,8,394,"glut"],
+  cuscuz:["cuscuz de milho",2,25,0.5,112,""], banana:["banana",1,23,0.3,90,"fruta",100,"banana"], mel:["mel",0,82,0,304,"mel"],
+  azeite:["azeite",0,0,100,884,"",10,"colher de sopa"], pasta:["pasta de amendoim",25,20,50,590,"",15,"colher"], castanha:["castanhas",15,20,60,620,""]
+};
+function foodOk(k,a){ const t=FOOD[k][5]; const r=a.restricoes||[]; const ng=(a.naogosta||"").toLowerCase();
+  if(r.includes("Vegano")&&/carne|peixe|ovo|lact|mel/.test(t)) return false;
+  if(r.includes("Vegetariano")&&/carne|peixe/.test(t)) return false;
+  if(r.includes("Não como peixe")&&t==="peixe") return false;
+  if(r.includes("Não come frutas")||r.includes("Não como frutas")) if(t==="fruta") return false;
+  if(ng){ const words=ng.split(/[,;.\s]+/).filter(w=>w.length>3); if(words.some(w=>FOOD[k][0].toLowerCase().includes(w.replace(/s$/,"")))) return false }
+  return true; }
+function fname(k,a){ let n=FOOD[k][0]; const r=a.restricoes||[];
+  if(r.includes("Sem glúten")&&FOOD[k][5]==="glut") n+=" sem glúten";
+  if(r.includes("Sem lactose")&&FOOD[k][5]==="lact") n=k==="whey"?"whey isolado (sem lactose)":n+" sem lactose";
+  return n; }
+const pick=(list,a,i=0)=>{ const ok=list.filter(k=>foodOk(k,a)); return ok.length?ok[i%ok.length]:null };
+const PLU={"ovo":"ovos","dose":"doses","fatia":"fatias","banana":"bananas","colher de sopa":"colheres de sopa","colher":"colheres"};
+function portion(k,g){ const u=FOOD[k][6]; if(u){ const n=Math.max(k==="ovo"?1:0.5,Math.round(g/u*(k==="ovo"?1:2))/(k==="ovo"?1:2)); const un=FOOD[k][7]; const nt=n%1?(Math.floor(n)?Math.floor(n)+" e ½":"½"):String(n); return {g:n*u,txt:`${nt} ${n>1?PLU[un]||un:un}`,unit:true} }
+  const r=g<60?10:g<200?10:25; const v=Math.max(r,Math.round(g/r)*r); return {g:v,txt:`${v} g`}; }
+function buildMeal(kind,share,T,a,idx){
+  // escolhe alimentos por tipo de refeição e calcula as porções para bater a proteína e o carboidrato do horário
+  const tp=T.prot*share, tc=T.carb*share, tf=T.fat*share; const items=[];
+  let prot=null, carb=null, carb2=null, extra=null;
+  if(kind==="cafe"){ prot=pick(["ovo","iogurte","tofu"],a,0); carb=pick(["tapioca","pao","cuscuz","aveia"],a,idx) }
+  else if(kind==="lanche"){ const r=a.restricoes||[]; prot=pick(r.includes("Vegano")?["tofu"]:["iogurte","cottage"],a,idx); carb=pick(["aveia","banana","pao","tapioca"],a,idx) }
+  else if(kind==="pre"){ carb=pick(["banana","pao","tapioca","mel"],a,idx) }
+  else { const r=a.restricoes||[]; const pl=r.includes("Vegano")?["tofu","grao","lentilha"]:r.includes("Vegetariano")?["ovo","tofu","grao","lentilha"]:["frango","patinho","peixe"];
+    prot=pick(pl,a,idx); carb=kind==="almoco"?pick(["arroz","batata","mandioca"],a,0):pick(["batata","arroz","batatadoce","mandioca"],a,idx); if(carb==="arroz") carb2=pick(["feijao"],a) }
+  let P=0,C=0,F=0,K=0; const parts=[]; const add=(k,g,slot)=>{ if(!k||g<=0) return; const p=portion(k,g); const f=FOOD[k]; P+=f[1]*p.g/100; C+=f[2]*p.g/100; F+=f[3]*p.g/100; K+=f[4]*p.g/100; parts.push([slot,p.unit&&(f[7]===k||k==="banana"||k==="ovo")?p.txt:`${p.txt} de ${fname(k,a)}`]) };
+  // 1) carboidrato (traz um pouco de proteína), 2) proteína para completar, 3) gordura para completar
+  const CCAP={pao:75,aveia:60,banana:200,mel:20};
+  if(carb){ const leg=prot&&FOOD[prot][2]>15?tp/FOOD[prot][1]*FOOD[prot][2]:0; let cl=Math.max(0,tc-leg);
+    if(carb2){ add(carb,cl*0.7/FOOD[carb][2]*100,1); add(carb2,cl*0.3/FOOD[carb2][2]*100,1) }
+    else if(CCAP[carb]){ const g=Math.min(CCAP[carb],cl/FOOD[carb][2]*100); add(carb,g,1); const rest=tc-C; const c2=pick(["tapioca","cuscuz","batata"].filter(x=>x!==carb),a); if(rest>10&&c2&&kind!=="pre") add(c2,rest/FOOD[c2][2]*100,1) }
+    else if(cl>=6) add(carb,cl/FOOD[carb][2]*100,1) }
+  const CAP={ovo:150,iogurte:200,queijo:60,cottage:200,tofu:250};
+  if(prot){ const f=FOOD[prot]; const need=Math.max(0,tp-P);
+    if(kind==="cafe"||kind==="lanche"){ add(prot,Math.min(CAP[prot]||200,need/f[1]*100),0); const top=pick(["whey","wheyveg"],a); if(tp-P>6&&top&&top!==prot) add(top,(tp-P)/FOOD[top][1]*100,0) }
+    else add(prot,need/f[1]*100,0) }
+  const fl=tf-F; if(fl>4&&kind!=="pre"){ const fk=kind==="lanche"?pick(["pasta","castanha"],a,idx):"azeite"; if(fk) add(fk,fl/FOOD[fk][3]*100,2) }
+  parts.sort((x,y)=>x[0]-y[0]); parts.forEach(p=>items.push(p[1]));
+  if(kind==="almoco"||kind==="jantar") items.push("salada e legumes à vontade");
+  if(kind==="pre") items.push("café (opcional)");
+  return {desc:items.join(" + "),p:Math.round(P),k:Math.round(K),c:Math.round(C),f:Math.round(F)};
+}
+const HORA={"Madrugada (5h a 7h)":{t:5,lbl:"às 5h"},"Manhã":{t:8,lbl:"pela manhã"},"Almoço":{t:12,lbl:"no almoço"},"Tarde":{t:17,lbl:"à tarde"},"Noite":{t:19,lbl:"à noite"}};
+const fh=h=>{ const H=Math.floor(h), M=Math.round((h-H)*60); return M?`${H}h${String(M).padStart(2,"0")}`:`${H}h` };
+function buildMeals(a,M){
+  const n=Math.max(3,Math.min(6,+a.refeicoes||5)); const ht=(HORA[a.horario]||HORA["Manhã"]).t;
+  const base={3:[["cafe",7,"Café da manhã",.30],["almoco",12.5,"Almoço",.40],["jantar",19.5,"Jantar",.30]],
+    4:[["cafe",7,"Café da manhã",.25],["almoco",12.5,"Almoço",.35],["lanche",16,"Lanche",.15],["jantar",19.5,"Jantar",.25]],
+    5:[["cafe",7,"Café da manhã",.22],["lanche",10,"Lanche",.13],["almoco",12.5,"Almoço",.30],["lanche",16,"Lanche",.10],["jantar",19.5,"Jantar",.25]],
+    6:[["cafe",7,"Café da manhã",.20],["lanche",10,"Lanche",.12],["almoco",12.5,"Almoço",.27],["lanche",16,"Lanche",.11],["jantar",19.5,"Jantar",.22],["lanche",22,"Ceia",.08]]}[n];
+  const mk=(dayk,T,withPre)=>{ let list=base.map(x=>x.slice());
+    if(withPre){ // pré-treino antes do treino; se o treino é bem cedo, o café vira pós-treino
+      if(ht<=6) list=[["pre",ht-0.33,"Pré-treino",.05],...list.map(x=>x[0]==="cafe"?["cafe",ht+1.5,"Café pós-treino",x[3]-.05]:x)];
+      else { const nx=list.find(x=>x[1]>ht); if(nx) nx[3]-=.05; else list[list.length-1][3]-=.05; if(!list.some(x=>Math.abs(x[1]-(ht-1))<0.8)) list.push(["pre",ht-0.75,"Pré-treino",.05]); else { const near=list.find(x=>Math.abs(x[1]-(ht-1))<0.8); near[3]+=.05 } list.sort((x,y)=>x[1]-y[1]) }
+      // refeição que cairia durante o treino passa para logo depois dele
+      list.forEach(x=>{ if(x[0]!=="pre"&&x[1]>ht-0.6&&x[1]<ht+1.2){ x[1]=ht+1.5; x[2]=x[2]+" pós-treino" } }); list.sort((x,y)=>x[1]-y[1]);
+    }
+    const ids={}; return list.map((x,i)=>{ const [kind,h,t,sh]=x; const m=buildMeal(kind,sh,T,a,i+(dayk==="descanso"?1:0)); ids[kind]=(ids[kind]||0)+1; const id=kind==="lanche"?"lanche"+ids[kind]:kind+(ids[kind]>1?ids[kind]:""); return [id,fh(h),t,m.desc,m.p,m.k,m.c,m.f] }); };
+  const T=M, R={...M,carb:Math.max(80,M.carb-40)}; R.kcal=R.prot*4+R.carb*4+R.fat*9;
+  const tot=list=>({kcal:list.reduce((s,m)=>s+m[5],0),prot:list.reduce((s,m)=>s+m[4],0),carb:list.reduce((s,m)=>s+m[6],0),fat:list.reduce((s,m)=>s+m[7],0)});
+  const tm=mk("treino",T,true), rm=mk("descanso",R,false), sm=mk("tenis",T,false);
+  const hl=(HORA[a.horario]||HORA["Manhã"]).lbl;
+  return {
+    treino:{t:`Dia de treino ${hl}`,...tot(tm),agua:M.agua,tip:"Proteína em todas as refeições. Beba água ao longo do dia e durma de 7 a 8 h.",m:tm},
+    descanso:{t:"Dia de descanso",...tot(rm),agua:M.agua,tip:"Um pouco menos de carboidrato, a mesma proteína: é no descanso que o músculo se reconstrói.",m:rm},
+    tenis:{t:"Dia de esporte",...tot(sm),agua:M.agua+2,tip:"Dia de maior gasto: a meta de calorias sobe sozinha com o esporte. Capriche no carboidrato antes e depois, e leve água com eletrólitos.",m:sm}};
+}
+function buildRules(a){
+  const r=a.restricoes||[], out=[];
+  if(r.includes("Não come frutas")||r.includes("Não como frutas")) out.push("Sem frutas no plano: capriche em legumes e verduras no almoço e no jantar para garantir fibras e vitaminas.");
+  if(r.includes("Sem glúten")) out.push("Sem glúten: use pão, aveia e massas com selo sem glúten; arroz, tapioca, mandioca e batata são naturalmente sem glúten.");
+  if(r.includes("Sem lactose")) out.push("Sem lactose: prefira iogurte, queijo e whey (isolado) sem lactose.");
+  if(r.includes("Vegano")) out.push("Vegano: combine leguminosas (feijão, grão-de-bico, lentilha) com tofu e proteína vegetal em pó para fechar a proteína.");
+  else if(r.includes("Vegetariano")) out.push("Vegetariano: ovos, laticínios, tofu e leguminosas garantem a proteína.");
+  if(r.includes("Alergia alimentar")||r.includes("Outra")) out.push("Você marcou alergia ou outra restrição: confira cada alimento do cardápio e ajuste com um nutricionista.");
+  out.push("Restaurante: proteína grelhada, metade do prato com salada, carboidrato do tamanho de 1 punho.");
+  out.push("Álcool: o ideal é zero; no máximo 2 doses por semana, nunca na véspera de treino ou de esporte.");
+  out.push(a.objetivo==="Hipertrofia"?"Ajuste a cada 15 dias: se o peso não subir, some 30 g de carboidrato por dia.":"Ajuste a cada 15 dias: se a média de peso não cair, tire 30 g de carboidrato do jantar.");
+  return out;
+}
+function buildSwaps(a){
+  const r=a.restricoes||[]; const veg=r.includes("Vegano"), vegt=r.includes("Vegetariano"), npx=r.includes("Não como peixe");
+  const prot=veg?"200 g de tofu · 1 dose de proteína vegetal + 1 xícara de grão-de-bico · 1,5 xícara de lentilha":vegt?"4 ovos + 2 claras · 200 g de tofu · 300 g de iogurte grego + 1 dose de whey":`150 g de frango · 130 g de patinho${npx?"":" · 170 g de tilápia"} · 4 ovos + 2 claras`;
+  return [["Proteína (~40 g)",prot],["Carboidrato (~45 g)","150 g de arroz · 200 g de batata · 120 g de mandioca · 80 g de tapioca · 150 g de batata-doce"],["Gordura (~10 g)","1 colher de sopa de azeite · 15 g de pasta de amendoim · 15 g de castanhas"]];
+}
+function applyPlan(){
+  if(!(PROFILE&&PROFILE.answers)&&window.claude&&claude.use) return; // versão pessoal no Claude: mantém o plano original até haver questionário
+  const a=ans(); const sig=JSON.stringify([a,PROFILE&&PROFILE.planAt,(SPORTS.items||[]).map(i=>[i.sport,i.days,i.min,i.int])]);
+  if(sig===PLANSIG) return; PLANSIG=sig;
+  const st=(PROFILE&&(PROFILE.planAt||PROFILE.updatedAt))?new Date(PROFILE.planAt||PROFILE.updatedAt):new Date(); START=new Date(st.getFullYear(),st.getMonth(),st.getDate());
+  const {sess,order}=buildSessions(a); Object.keys(SESS).forEach(k=>delete SESS[k]); Object.assign(SESS,sess);
+  const {W,sportDays}=buildWeek(a,order); Object.keys(WEEK).forEach(k=>delete WEEK[k]); Object.assign(WEEK,W);
+  const M=calcMacros(a); const ML=buildMeals(a,M); Object.keys(MEALS).forEach(k=>delete MEALS[k]); Object.assign(MEALS,ML);
+  RULES.length=0; RULES.push(...buildRules(a)); SWAPS.length=0; SWAPS.push(...buildSwaps(a));
+  const c=a.corpo||{}; const h=HORA[a.horario]||HORA["Manhã"];
+  PLANINFO={hora:fh(h.t),horaTxt:h.lbl,prot:MEALS.treino.prot,sportDays,macros:M,
+    person:`${a.sexo==="Feminino"?"uma mulher":"um homem"} de ${c.idade||"?"} anos, ${c.altura||"?"} cm e ${c.peso||"?"} kg, objetivo ${String(a.objetivo||"").toLowerCase()}, treinando ${a.dias} vezes por semana ${h.lbl}${(a.restricoes||[]).filter(x=>x!=="Nenhuma").length?", restrições: "+a.restricoes.filter(x=>x!=="Nenhuma").join(", ").toLowerCase():""}${a.naogosta?", não come: "+a.naogosta:""}`};
+}
+
 /* ===================== ESTADO / DADOS ===================== */
 let sel=iso(new Date()); let tab="home"; let openEx=null;
 let SETS=[]; let DAYS={}; let DIET={}; let PROFILE=null; let SPORTS={items:[]}; let db=null; let mode="loading";
@@ -512,6 +732,7 @@ function suggestion(key,rmin,rmax,last){
 
 /* ===================== RENDER ===================== */
 function render(force){
+  try{ applyPlan() }catch(e){ console.error(e) }
   const ae=document.activeElement; if(!force&&ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"||ae.tagName==="SELECT")&&document.getElementById("view").contains(ae)) return;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   $("#todayB").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="pointer-events:none"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span style="pointer-events:none">${sel===iso(new Date())?"Hoje":DOW[fromIso(sel).getDay()].slice(0,3)+" "+br(sel)}</span>`;
@@ -519,20 +740,17 @@ function render(force){
 }
 function head(info){
   const d=fromIso(sel); const ph=PHASES[info.phase];
-  return `<div class="kick">${info.inPlan?`Dia ${info.day} de 30 · `:""}${DOW[d.getDay()]} ${br(sel)}</div>`+
-  (info.inPlan?`<div class="pills"><span class="pill g">${ph.n}</span><span class="pill">RIR alvo: ${info.light?"3":ph.rir}</span></div>`:`<div class="pills"><span class="pill">Fora do ciclo de 30 dias (09/11 a 08/12)</span></div>`);
+  return `<div class="kick">${info.inPlan?`${info.cyc?`Ciclo ${info.cyc+1} · `:""}Dia ${info.day} de 30 · `:""}${DOW[d.getDay()]} ${br(sel)}</div>`+
+  (info.inPlan?`<div class="pills"><span class="pill g">${ph.n}</span><span class="pill">RIR alvo: ${info.light?"3":ph.rir}</span></div>`:`<div class="pills"><span class="pill">Seu plano começa em ${br(iso(START))}</span></div>`);
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
-  if(info.s==="TENNIS"){ const t=setsOn(sel).find(s=>s.ex==="tenis");
-    v.innerHTML=`<div class="hero">${head(info)}<h1>Tênis no saibro</h1><div class="sub">10h às 12h. Café reforçado às 8h, eletrólitos na garrafa e isotônico ou gel no intervalo. Sem musculação hoje.</div></div>
-    <div class="card"><h3>Registrar o tênis</h3>
-      ${t?`<div class="hint">Registrado: ${t.reps} min · esforço ${t.rir}/10 <button class="ghost" style="height:32px;margin-left:8px" onclick="delSet('${t.id}')">Desfazer</button></div>`:
-      `<div class="grid2"><div class="stepper"><label>Minutos</label><div class="st"><button onclick="adj('ten_m',-10)">−</button><input id="ten_m" inputmode="numeric" value="120"><button onclick="adj('ten_m',10)">+</button></div></div>
-      <div class="stepper"><label>Esforço 1 a 10</label><div class="st"><button onclick="adj('ten_e',-1)">−</button><input id="ten_e" inputmode="numeric" value="7"><button onclick="adj('ten_e',1)">+</button></div></div></div>
-      <button class="big" onclick="logTennis()">Registrar tênis</button>`}
-    </div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[]; const done=setsOn(sel).filter(s=>s.mode==="sport"||s.mode==="tennis");
+    v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">${its.map(i=>(SPORTLIST[i.sport]||{}).n+" · "+i.min+" min").join(" · ")||"Sem musculação hoje."} Capriche no carboidrato antes, leve água com eletrólitos e registre ao terminar.</div></div>
+    <div class="card"><h3>Registrar</h3>${done.length?done.map(t=>`<div class="hint">${esc(t.name)}: ${t.reps} min${t.kcal?` · ≈ ${t.kcal} kcal`:""} <button class="ghost" style="height:32px;margin-left:8px" onclick="delSet('${t.id}')">Desfazer</button></div>`).join(""):""}
+      ${its.filter(i=>!done.some(d=>d.ex===i.sport)).map(i=>`<button class="big" onclick="logSport('${i.id}')">Registrar ${esc((SPORTLIST[i.sport]||{}).n||"esporte")} (${i.min} min)</button>`).join("")}
+      <button class="ghost" style="width:100%;margin-top:10px" onclick="go('esportes')">Ajustar meus esportes</button></div>${uploadCard()}${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -547,10 +765,10 @@ function renderTreino(){
       <div class="exb">${isOpen?exBody(code,key,n,rmin,rmax,rs,info,mine):""}</div></div>`;
   }).join("");
   const pct=tot?Math.round(done/tot*100):0;
-  v.innerHTML=`<div class="hero">${head(info)}<h1>Treino ${info.s}</h1><div class="sub">${esc(S.t)} · às 5h</div>
+  v.innerHTML=`<div class="hero">${head(info)}<h1>Treino ${info.s}</h1><div class="sub">${esc(S.t)} · ${PLANINFO.horaTxt||""}</div>
     ${info.note?`<div class="hint" style="margin:10px 0 0">${esc(info.note)}</div>`:""}
     <div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:6px">${done} de ${tot} séries · ${pct}%</div></div>
-    <div class="hint n">Aquecimento (10 min): 7 min de esteira leve, mobilidade de quadril e ombro, 1 série de rotação externa e 1 a 2 séries leves do primeiro exercício.</div>
+    <div class="hint n">Aquecimento (10 min): ${/casa/.test(ans().local||"")?"5 min de polichinelo ou marcha no lugar":"7 min de esteira ou bicicleta leve"}, mobilidade de quadril e ombro e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
     ${uploadCard()}${baseLink("treino")}`;
@@ -621,7 +839,7 @@ window.buy=k=>{ if(typeof gBuy==='function'&&typeof sb!=="undefined"&&sb&&USER){
 /* ===================== METAS ===================== */
 function goalsCard(ds){
   const sa=sportAdj(sel); const P=ds.P;
-  const G=[["Calorias",ds.kcal,P.kcal+sa.add,"kcal","limit"],["Proteína",ds.prot,165,"g","min"],["Carboidrato",ds.carb,P.carb+Math.round(sa.add/4),"g","limit"],["Gordura",ds.fat,P.fat,"g","limit"],["Água",(ds.d.agua||0)/2,P.agua/2,"L","min"]];
+  const G=[["Calorias",ds.kcal,P.kcal+sa.add,"kcal","limit"],["Proteína",ds.prot,ds.P.prot,"g","min"],["Carboidrato",ds.carb,P.carb+Math.round(sa.add/4),"g","limit"],["Gordura",ds.fat,P.fat,"g","limit"],["Água",(ds.d.agua||0)/2,P.agua/2,"L","min"]];
   const f=(v,u)=>u==="L"?String(Math.round(v*10)/10).replace(".",","):Math.round(v).toLocaleString("pt-BR");
   const rows=G.map(([n,v,t,u,kind])=>{ const pct=Math.min(100,t?v/t*100:0); const diff=v-t; let txt,col,bar;
     if(diff<0){ txt=`Faltam ${f(-diff,u)} ${u}`; col="var(--mut)"; bar="linear-gradient(90deg,var(--gold),var(--gold2))" }
@@ -644,10 +862,11 @@ const ICONS={
 function renderHome(){
   const info=dayInfo(sel); const now=new Date(); const h=now.getHours();
   const greet=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
-  const sess=info.s==="REST"?"Descanso":info.s==="TENNIS"?"Tênis 10h às 12h":`Treino ${info.s} · 5h`;
-  const sessD=info.s==="REST"?"Recuperação: passos, proteína e sono":info.s==="TENNIS"?"Aula no saibro, sem musculação":SESS[info.s].t;
+  const spN=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow]||[]).map(i=>(SPORTLIST[i.sport]||{}).n).filter(Boolean).join(" e ")||"Esporte";
+  const sess=info.s==="REST"?"Descanso":info.s==="TENNIS"?spN:`Treino ${info.s} · ${PLANINFO.horaTxt||""}`;
+  const sessD=info.s==="REST"?"Recuperação: passos, proteína e sono":info.s==="TENNIS"?"Dia de esporte, sem musculação":(SESS[info.s]||{t:""}).t;
   let tot=0,done=0; if(SESS[info.s]){ const today=setsOn(sel); SESS[info.s].ex.forEach(([code,key,sets])=>{const n=plannedSets(sets,info);tot+=n;done+=Math.min(n,today.filter(x=>x.code===code&&x.ex===key).length)}) }
-  const ds=dietStats(sel); const falta=Math.max(0,165-ds.prot); const saved=!!DAYS[sel];
+  const ds=dietStats(sel); const falta=Math.max(0,ds.P.prot-ds.prot); const saved=!!DAYS[sel];
   const tile=(t,n,d)=>`<button class="tile" onclick="go('${t}')"><span class="ic">${ICONS[t]}</span><span><div class="tn">${n}</div><div class="td">${d}</div></span></button>`;
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
   $("#view").innerHTML=inst+`<div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>
@@ -655,13 +874,13 @@ function renderHome(){
   <div class="todaycard"><div class="kick">${greet}${PROFILE&&PROFILE.answers&&PROFILE.answers.nome?", "+esc(PROFILE.answers.nome.split(" ")[0]):""}</div>
     <div style="font-size:20px;font-weight:800;margin-top:6px">${info.inPlan?`Dia ${info.day} de 30 · `:""}${sess}</div>
     <div class="sub">${esc(sessD)}${info.inPlan?` · ${PHASES[info.phase].n}`:""}</div>
-    <div class="bar" style="margin-top:12px"><i style="width:${tot?Math.round(done/tot*100):0}%"></i></div><div class="sub" style="margin-top:6px">${tot?`${Math.round(done/tot*100)}% do treino feito`:info.s==="TENNIS"?"Dia de tênis":"Dia de descanso"}</div>
+    <div class="bar" style="margin-top:12px"><i style="width:${tot?Math.round(done/tot*100):0}%"></i></div><div class="sub" style="margin-top:6px">${tot?`${Math.round(done/tot*100)}% do treino feito`:info.s==="TENNIS"?"Dia de esporte":"Dia de descanso"}</div>
   </div>
   ${goalsCard(ds)}
   </div>
   <div class="tiles">
-    ${tile("treino","Treino",SESS[info.s]?`${done} de ${tot} séries hoje`:info.s==="TENNIS"?"Registrar o tênis":"Dia de descanso")}
-    ${tile("dieta","Dieta",`${ds.prot} g de 165 g de proteína`)}
+    ${tile("treino","Treino",SESS[info.s]?`${done} de ${tot} séries hoje`:info.s==="TENNIS"?"Registrar o esporte":"Dia de descanso")}
+    ${tile("dieta","Dieta",`${ds.prot} g de ${ds.P.prot} g de proteína`)}
     ${tile("dia","Fim do dia",saved?"Dia salvo ✓":"Peso, sono e checklist")}
     ${tile("evo","Evolução","Gráficos de corpo e força")}
     ${(()=>{const w=sportWeek(); const t=sportAdj(sel); return `<button class="tile wide" onclick="go('esportes')"><span class="ic">${ICONS.esportes}</span><span><div class="tn">Esportes</div><div class="td">${(SPORTS.items||[]).length?`${String(Math.round(w.h*10)/10).replace(".",",")} h por semana · ${w.gross.toLocaleString("pt-BR")} kcal${t.ss.length?` · hoje ≈ ${t.gross} kcal`:""}`:"Cadastre seus esportes e o gasto entra na dieta"}</div></span></button>`})()}
@@ -708,7 +927,7 @@ function sportsOnDay(date){ const dow=fromIso(date).getDay();
   return (SPORTS.items||[]).filter(i=>(i.days||[]).includes(dow)).map(i=>({it:i,min:i.min,...sessKcal(i),logged:false})) }
 function sportWeek(){ let min=0,gross=0,net=0; (SPORTS.items||[]).forEach(i=>{const n=(i.days||[]).length; const k=sessKcal(i); min+=n*i.min; gross+=n*k.gross; net+=n*k.net}); return {h:min/60,gross,net,perDay:Math.round(net*EATBACK/7)} }
 function sportAdj(date){ const ss=sportsOnDay(date); const net=ss.reduce((a,x)=>a+x.net,0); let add=Math.round(net*EATBACK/10)*10;
-  const info=dayInfo(date); const builtIn = info.s==="TENNIS" ? 220 : 0; add=Math.max(0,add-builtIn); return {ss,net,gross:ss.reduce((a,x)=>a+x.gross,0),add} }
+  const info=dayInfo(date); const builtIn = 0; add=Math.max(0,add-builtIn); return {ss,net,gross:ss.reduce((a,x)=>a+x.gross,0),add} }
 let spEdit=null, spDraft=null;
 function renderEsportes(){
   const w=sportWeek(); const items=SPORTS.items||[]; const today=sportAdj(sel); const dow=fromIso(sel).getDay();
@@ -778,7 +997,7 @@ function profileCard(){
     <button class="big" onclick="startQuiz()">Começar questionário</button></div>`;
   return `<div class="prof"><div class="kick">Seu perfil</div><div style="font-size:18px;font-weight:800;margin:6px 0 2px">${esc(p.objetivo||"")} · ${esc(p.prazo||"")}</div>
     <div>${(p.foco||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}${(p.restricoes||[]).filter(x=>x!=="Nenhuma").map(x=>`<span class="chip" style="background:#fdecec;color:#7a1f1f">${esc(x)}</span>`).join("")}</div>
-    <button class="big" style="margin:12px 0 0;height:46px" onclick="go('perfil')">${PROFILE.plan?"Ver meu plano":"Gerar meu plano"}</button><button class="ghost" style="width:100%;margin-top:8px" onclick="startQuiz(true)">Atualização do Questionário</button></div>`;
+    <button class="big" style="margin:12px 0 0;height:46px" onclick="go('perfil')">Ver meu plano</button><button class="ghost" style="width:100%;margin-top:8px" onclick="startQuiz(true)">Atualização do Questionário</button></div>`;
 }
 window.startQuiz=(edit)=>{ qAns=edit&&PROFILE?JSON.parse(JSON.stringify(PROFILE.answers)):{}; qStep=0; tab="perfil"; quizOpen=true; window.scrollTo(0,0); render(true) };
 let quizOpen=false, planBusy=false;
@@ -814,33 +1033,30 @@ function baseMacros(a){ const c=a.corpo||{}; const kg=num(c.peso)||80, cm=num(c.
   const adj={"Perder gordura":-500,"Hipertrofia":250,"Recomposição":-350,"Performance esportiva":0,"Saúde e bem-estar":-150}[a.objetivo]||0;
   const sw=sportWeek(); const kcal=Math.round((tdee+adj+sw.perDay)/50)*50; const prot=Math.round(kg*(a.objetivo==="Saúde e bem-estar"?1.6:2.0)); const fat=Math.round(kg*0.9); const carb=Math.max(80,Math.round((kcal-prot*4-fat*9)/4));
   return {kcal,prot,fat,carb,agua:Math.round(kg*0.035*10)/10,tdee:Math.round(tdee)} }
+function planObj(){ applyPlan(); const a=ans();
+  const DN=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"]; const T=MEALS.treino;
+  const fmt=e=>{ const E=EX[e[1]]; if(!E) return e[1]; if(E.m==="tread"||E.m==="simple") return `${E.n} · ${e[3]} min`; const r=e[3]===e[4]?e[3]:e[3]+" a "+e[4]; return `${E.n} · ${e[2]}×${r}${E.m==="time"?" s":E.m==="dist"?" m":""}` };
+  const dias=[1,2,3,4,5,6,0].filter(d=>SESS[WEEK[d]]).map(d=>({dia:`${DN[d]} · Treino ${WEEK[d]}`,foco:SESS[WEEK[d]].t,exercicios:SESS[WEEK[d]].ex.map(fmt)}));
+  const sp=Object.keys(PLANINFO.sportDays||{}).map(d=>DN[d]+": "+PLANINFO.sportDays[d].map(i=>(SPORTLIST[i.sport]||{}).n).join(" e "));
+  const foco=(a.foco||[]).filter(x=>x!=="Corpo todo por igual");
+  const al=[]; if((a.lesoes||[]).some(x=>x!=="Nenhuma")) al.push(`Você marcou dor ou lesão (${a.lesoes.filter(x=>x!=="Nenhuma").join(", ").toLowerCase()}): tiramos os exercícios que mais sobrecarregam a região. Se a dor aparecer, pare e procure um profissional.`);
+  if(a.obs) al.push("Você deixou uma observação de saúde: mostre este plano ao seu médico ou nutricionista antes de começar.");
+  const plan={fonte:"local",resumo:`${a.dias} treinos por semana ${PLANINFO.horaTxt}, com ${foco.length?"prioridade para "+foco.join(", ").toLowerCase():"o corpo todo trabalhado por igual"}. Dieta de cerca de ${T.kcal.toLocaleString("pt-BR")} kcal e ${T.prot} g de proteína nos dias de treino, em ${T.m.length} refeições.`,
+    expectativa:a.objetivo==="Hipertrofia"?"Ganhos de força nas primeiras semanas; ganho de massa visível com 8 a 12 semanas de consistência.":a.objetivo==="Perder gordura"?"Perda média de 0,5 a 1% do peso por semana, com a cintura caindo junto.":"Força sobe nas primeiras semanas; mudanças no espelho aparecem com 8 a 12 semanas de consistência.",
+    calorias:T.kcal,proteina_g:T.prot,carbo_g:T.carb,gordura_g:T.fat,agua_l:T.agua/2,
+    treino:{divisao:`${a.dias} dias por semana${sp.length?" + esporte ("+sp.join("; ")+")":""}`,prioridades:foco.length?`Os grupos prioritários (${foco.join(", ").toLowerCase()}) abrem os treinos e ganham uma série a mais.`:"Volume equilibrado entre todos os grupos.",dias},
+    dieta:{refeicoes:T.m.map(m=>({horario:m[1],nome:m[2],itens:m[3]})),evitar:[],dicas:RULES.slice()},alertas:al};
+  return plan;
+}
 async function genPlan(){
-  if(!PROFILE) return; planBusy=true; tab="perfil"; render(true);
-  const a=PROFILE.answers; const m=baseMacros(a); let plan=null;
-  const sm=await getSampler();
-  if(sm){ try{
-    const prompt=`Você é treinador e nutricionista esportivo. Monte um plano personalizado, prático e realista, em português do Brasil, sem travessões, para esta pessoa. Respeite TODAS as restrições alimentares e alimentos que ela não come. Considere lesões ao escolher exercícios. Use os macros calculados como base (pode ajustar até 10% com justificativa). Seja honesto sobre o que é possível no prazo.
-Respostas do questionário: ${JSON.stringify(a)}
-Macros base calculados (Mifflin-St Jeor, já somando ${EATBACK*100}% do gasto líquido médio dos esportes): ${JSON.stringify(m)}
-Esportes cadastrados (gasto estimado por MET): ${JSON.stringify((SPORTS.items||[]).map(i=>({esporte:SPORTLIST[i.sport].n,intensidade:SPORTLIST[i.sport].i[i.int][0],dias:i.days.map(d=>DSHORT[d]),minutos:i.min,kcal_sessao:sessKcal(i).gross})))}. Nos dias de esporte, sugira refeições com mais carboidrato e não coloque treino pesado de pernas na véspera.
-Responda SOMENTE um JSON válido:
-{"resumo":"2 frases sobre a estratégia","expectativa":"1 frase honesta do que esperar no prazo escolhido","calorias":0,"proteina_g":0,"carbo_g":0,"gordura_g":0,"agua_l":0,
-"treino":{"divisao":"nome da divisão","prioridades":"1 frase de como as partes priorizadas serão trabalhadas","dias":[{"dia":"Dia 1","foco":"texto","exercicios":["exercício séries×reps"]}]},
-"dieta":{"refeicoes":[{"horario":"hh:mm","nome":"texto","itens":"alimentos e quantidades"}],"evitar":["texto"],"dicas":["texto"]},
-"alertas":["avisos de saúde ou de segurança, se houver"]}`;
-    const v=await sm.json(prompt,{modelTier:"default"});
-    if(v&&v.treino&&v.dieta) plan={...v,fonte:"claude"};
-  }catch(e){ if(e&&e.code==="rate_limited") toast("Muitas consultas agora. Gerei um plano base.",true) } }
-  if(!plan) plan={fonte:"local",resumo:`Plano base para ${a.objetivo.toLowerCase()}, com ${a.dias} treinos por semana.`,expectativa:"Ganhos de força rápidos nas primeiras semanas; mudanças visuais aparecem com 8 a 12 semanas de consistência.",calorias:m.kcal,proteina_g:m.prot,carbo_g:m.carb,gordura_g:m.fat,agua_l:m.agua,
-    treino:{divisao:+a.dias>=5?"Superior / Inferior + condicionamento":+a.dias>=3?"Corpo inteiro A / B":"Corpo inteiro",prioridades:`Prioridade para ${(a.foco||[]).join(", ").toLowerCase()||"o corpo todo"}: começam cada treino e recebem 2 estímulos por semana.`,dias:[]},
-    dieta:{refeicoes:[],evitar:(a.restricoes||[]).filter(x=>x!=="Nenhuma").map(x=>"Restrição respeitada: "+x.toLowerCase()),dicas:["Proteína em todas as refeições","Legumes e verduras no almoço e no jantar","Água: "+String(m.agua).replace(".",",")+" L por dia"]},alertas:[]};
-  const P=JSON.parse(JSON.stringify(PROFILE)); P.plan=plan; P.planAt=new Date().toISOString(); planBusy=false; saveProfile(P); toast("Plano pronto ✓");
+  if(!PROFILE) return; const P=JSON.parse(JSON.stringify(PROFILE)); P.planAt=new Date().toISOString();
+  PROFILE=P; PLANSIG=""; P.plan=planObj(); saveProfile(P); toast("Plano pronto ✓");
 }
 window.genPlan=genPlan;
 function renderPerfil(){
   if(quizOpen) return renderQuiz();
   if(!PROFILE) { $("#view").innerHTML=`<div class="hero"><div class="kick">Conheça você</div><h1>Seu perfil</h1></div>${profileCard()}`; return }
-  const a=PROFILE.answers, p=PROFILE.plan;
+  const a=PROFILE.answers, p=planObj();
   const head=`<div class="hero"><div class="kick">Meu plano</div><h1>${esc(a.nome||"")}</h1><div class="sub">${esc(a.objetivo)} · ${esc(a.prazo)} · ${esc(a.dias)} dias por semana</div>
     <div>${(a.foco||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div></div>`;
   if(planBusy||!p){ $("#view").innerHTML=head+`<div class="card" style="text-align:center"><div style="font-size:30px">⏳</div><h3>${planBusy?"Montando seu plano...":"Plano ainda não gerado"}</h3><div class="sub">${planBusy?"Analisando suas respostas, objetivo e restrições.":""}</div>${planBusy?"":`<button class="big" onclick="genPlan()">Gerar meu plano</button>`}</div>`; return }
@@ -853,8 +1069,8 @@ function renderPerfil(){
     ${(p.dieta.evitar||[]).length?`<h4>Evitar</h4><ul class="cues">${p.dieta.evitar.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
     ${(p.dieta.dicas||[]).length?`<h4>Dicas</h4><ul class="cues">${p.dieta.dicas.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
   ${(p.alertas||[]).length?`<div class="verd nao_pode"><div class="vt">Atenção</div>${p.alertas.map(esc).join("<br>")}</div>`:""}
-  <div class="row" style="margin:12px 0"><button class="ghost" style="flex:1" onclick="startQuiz(true)">Refazer questionário</button><button class="ghost" style="flex:1" onclick="genPlan()">Gerar de novo</button></div>
-  <div class="sub" style="text-align:center;margin-bottom:10px">${p.fonte==="claude"?"Plano gerado pelo Claude a partir das suas respostas.":"Plano base calculado pelo app."} Não substitui avaliação médica ou de nutricionista.</div>`;
+  <div class="row" style="margin:12px 0"><button class="ghost" style="flex:1" onclick="startQuiz(true)">Atualização do Questionário</button><button class="ghost" style="flex:1" onclick="genPlan()">Recomeçar o ciclo hoje</button></div>
+  <div class="sub" style="text-align:center;margin-bottom:10px">Plano montado pela Aura a partir das suas respostas, com base nos estudos da Base de dados. Conteúdo educativo: não substitui avaliação médica, de nutricionista ou de educador físico.</div>`;
 }
 
 /* ===================== DIETA (render) ===================== */
@@ -863,16 +1079,17 @@ function dietStats(date){ const info=dayInfo(date); const P=MEALS[dayType(info)]
   let prot=0,kcal=0,carb=0,fat=0; const left=[]; let done=0;
   const cf=e=>{ if(e.carbo!=null&&e.gordura!=null) return [+e.carbo||0,+e.gordura||0]; const rem=Math.max(0,(e.kcal||0)-(e.proteina||0)*4); return [Math.round(rem*.5/4),Math.round(rem*.5/9)] };
   for(const m of P.m){ const sb=subs[m[0]]; if(sb){const [c,f]=cf(sb);prot+=sb.proteina||0;kcal+=sb.kcal||0;carb+=c;fat+=f;done++} else if(d.meals&&d.meals[m[0]]){prot+=m[4];kcal+=m[5];carb+=m[6]||0;fat+=m[7]||0;done++} else left.push(m) }
+  const ids=new Set(P.m.map(m=>m[0])); Object.keys(subs).filter(k=>!ids.has(k)).forEach(k=>{ const sb=subs[k]; const [c,f]=cf(sb); prot+=sb.proteina||0; kcal+=sb.kcal||0; carb+=c; fat+=f }); // registros de um cardápio anterior continuam contando
   prot+=(d.extra||0)*24+lg.reduce((a,e)=>a+(e.proteina||0),0); kcal+=(d.extra||0)*115+lg.reduce((a,e)=>a+(e.kcal||0),0);
   carb+=(d.extra||0)*2+lg.reduce((a,e)=>a+cf(e)[0],0); fat+=(d.extra||0)*1.5+lg.reduce((a,e)=>a+cf(e)[1],0); carb=Math.round(carb); fat=Math.round(fat);
   return {P,d,done,total:P.m.length,prot,kcal,carb,fat,left,leftProt:left.reduce((a,m)=>a+m[4],0),entries:lg.length,pct:Math.round(done/P.m.length*100)} }
 function renderDieta(){
   const info=dayInfo(sel); const st=dietStats(sel); const P=st.P; const d=st.d;
-  const ppct=Math.min(100,Math.round(st.prot/165*100)); const sa=sportAdj(sel);
+  const ppct=Math.min(100,Math.round(st.prot/P.prot*100)); const sa=sportAdj(sel);
   $("#view").innerHTML=`<div class="hero">${head(info)}<h1>Dieta</h1><div class="sub">${esc(P.t)}</div>
     <div class="mac"><div><b>${(P.kcal+sa.add).toLocaleString("pt-BR")}</b><span>kcal${sa.add?" ✚":""}</span></div><div><b>${P.prot} g</b><span>proteína</span></div><div><b>${P.carb+Math.round(sa.add/4)} g</b><span>carbo</span></div><div><b>${P.fat} g</b><span>gordura</span></div></div>
     <div class="bar"><i style="width:${ppct}%;background:linear-gradient(90deg,#2e8b57,#2e8b57)"></i></div>
-    <div class="sub" style="margin-top:6px">Proteína hoje: <b style="color:#1d2433">${st.prot} g</b> de 165 g · ${st.kcal.toLocaleString("pt-BR")} kcal · ${st.done} de ${st.total} refeições</div></div>
+    <div class="sub" style="margin-top:6px">Proteína hoje: <b style="color:#1d2433">${st.prot} g</b> de ${P.prot} g · ${st.kcal.toLocaleString("pt-BR")} kcal · ${st.done} de ${st.total} refeições</div></div>
     ${sa.ss.length?`<div class="hint">${sa.ss.map(x=>`${SPORTLIST[x.it.sport]?.e||""} ${esc(SPORTLIST[x.it.sport]?.n||"")} hoje: ≈ ${x.gross} kcal`).join(" · ")}. ${sa.add?`Sua meta subiu ${sa.add} kcal: some ${sa.add>=300?"1 porção de arroz (150 g) e 1 de batata (200 g)":"1 porção de arroz (150 g) ou de batata (200 g)"} depois do esporte.`:"O cardápio de hoje já cobre esse gasto."}</div>`:""}
     ${missCard(st)}
     <div class="kick" style="margin:14px 0 8px">Cardápio do plano</div>
@@ -889,16 +1106,16 @@ function renderDieta(){
     <div class="card"><h3>Água · meta ${P.agua} copos de 500 ml (${P.agua/2} L)</h3><div class="water">${Array.from({length:Math.max(P.agua,(d.agua||0))+1},(_,i)=>`<button class="${i<(d.agua||0)?"on":""}" onclick="setAgua(${i+1})">💧</button>`).join("")}</div>
       <div class="sub" style="margin-top:8px">${((d.agua||0)/2).toLocaleString("pt-BR")} L de ${P.agua/2} L</div></div>
     <details class="card"><summary>Tabela de trocas</summary><table style="margin-top:10px">${SWAPS.map(r=>`<tr><td style="width:34%;color:var(--gold2);font-weight:600">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table></details>
-    <details class="card"><summary>Regras e suplementos</summary><ul class="cues" style="margin-top:10px">${RULES.map(r=>`<li>${esc(r)}</li>`).join("")}<li>Creatina: 5 g todo dia, qualquer horário.</li><li>Whey: só para completar a proteína.</li><li>Eletrólitos no sábado de tênis.</li></ul></details>${baseLink("dieta")}`;
+    <details class="card"><summary>Regras e suplementos</summary><ul class="cues" style="margin-top:10px">${RULES.map(r=>`<li>${esc(r)}</li>`).join("")}${(ans().suplementos||[]).includes("Creatina")?"<li>Creatina: 5 g todo dia, qualquer horário.</li>":""}<li>Suplemento em pó (whey ou vegetal): só para completar a proteína.</li>${Object.keys(PLANINFO.sportDays||{}).length?"<li>Eletrólitos na água nos dias de esporte.</li>":""}</ul></details>${baseLink("dieta")}`;
 }
 function missCard(st){
-  const falta=Math.max(0,165-st.prot);
-  if(falta===0) return `<div class="miss ok"><div class="kick" style="color:#2e8b57">Proteína do dia</div><div class="n">Meta batida ✓</div><div class="sub">${st.prot} g de 165 g. Agora é só manter as calorias no plano.</div></div>`;
+  const falta=Math.max(0,st.P.prot-st.prot);
+  if(falta===0) return `<div class="miss ok"><div class="kick" style="color:#2e8b57">Proteína do dia</div><div class="n">Meta batida ✓</div><div class="sub">${st.prot} g de ${st.P.prot} g. Agora é só manter as calorias no plano.</div></div>`;
   const doses=Math.ceil(Math.max(0,falta-st.leftProt)/24);
   let plano = st.left.length ? (st.leftProt>=falta ? `Se fizer ${st.left.length>2?"as "+st.left.length+" refeições":"o "+st.left.map(m=>m[2].toLowerCase()).join(" e o ")} que faltam do plano (${st.leftProt} g), você fecha a meta.` : `Mesmo com as refeições que faltam (${st.leftProt} g), ainda ficariam ${falta-st.leftProt} g: some ${doses} dose(s) de whey ou ${Math.round((falta-st.leftProt)/31*100/10)*10} g de frango.`) :
     `Sem refeições do plano pela frente: ${doses||1} dose(s) de whey (24 g cada), ou ${Math.round(falta/31*100/10)*10} g de frango, ou ${Math.ceil(falta/11)*100} g de cottage.`;
   const all=[...(st.d.log||[]),...Object.values(st.d.subs||{})].filter(e=>e.sugestao).sort((a,b)=>(a.hora||"")<(b.hora||"")?-1:1); const last=all.slice(-1)[0];
-  return `<div class="miss"><div class="kick">Falta de proteína hoje</div><div class="n">${falta} g</div><div class="sub" style="color:#6b5a35">${st.prot} g de 165 g. ${plano}</div>${last&&last.sugestao?`<div class="sub" style="margin-top:8px;color:#1d2433">💡 ${esc(last.sugestao)}</div>`:""}</div>`;
+  return `<div class="miss"><div class="kick">Falta de proteína hoje</div><div class="n">${falta} g</div><div class="sub" style="color:#6b5a35">${st.prot} g de ${st.P.prot} g. ${plano}</div>${last&&last.sugestao?`<div class="sub" style="margin-top:8px;color:#1d2433">💡 ${esc(last.sugestao)}</div>`:""}</div>`;
 }
 let foodDraft="", foodBusy=false, sampler=undefined; let editMeal=null; const mealDraft={}; let mealBusy=null;
 function itemsHtml(e){ return `<div class="it">${(e.itens||[]).map(i=>`${esc(i.alimento)} (${esc(i.quantidade)}): ${i.proteina} g`).join(" · ")}${e.alerta?`<br><span style="color:#b4532a">⚠ ${esc(e.alerta)}</span>`:""}${e.fonte==="local"?`<br><span style="color:var(--mut)">estimativa pela tabela do app</span>`:""}</div>` }
@@ -949,7 +1166,7 @@ window.askFood=async id=>{
   const info=dayInfo(sel); const st=dietStats(sel); const m=st.P.m.find(x=>x[0]===id); let r=null;
   const sm=await getSampler();
   if(sm){ try{
-    const prompt=`Você é nutricionista esportivo de um homem de 1,84 m e 82 kg em plano de 30 dias de recomposição corporal (perder barriga e ganhar músculo), treinando às 5h e jogando tênis aos sábados. Regras da dieta: não come frutas, meta diária ${st.P.kcal} kcal e 165 g de proteína, álcool no máximo 2 doses por semana e nunca na véspera de treino ou tênis, deita às 21h.
+    const prompt=`Você é nutricionista esportivo de ${PLANINFO.person||"um adulto em plano de treino"}. Meta diária: ${st.P.kcal} kcal e ${st.P.prot} g de proteína; álcool no máximo 2 doses por semana e nunca na véspera de treino ou esporte.
 Hoje: ${DOW[info.dow]}, ${info.s==="TENNIS"?"dia de tênis":info.s==="REST"?"dia de descanso":"dia de treino"}. Já consumido hoje: ${st.prot} g de proteína e ${st.kcal} kcal.
 Horário em questão: ${m[1]}, ${m[2]}. O plano prevê: "${m[3]}" (${m[4]} g de proteína, ${m[5]} kcal).
 Ele quer comer, NO LUGAR dessa refeição: """${txt}"""
@@ -983,12 +1200,12 @@ async function calcFood(txt, st, extraCtx, excludeId){
   const soFar = excludeId ? st.prot - ((st.d.subs&&st.d.subs[excludeId])?st.d.subs[excludeId].proteina:0) : st.prot;
   const left = st.left.filter(m=>m[0]!==excludeId);
   if(sm){ try{
-    const prompt=`Você é nutricionista esportivo. Estime proteína (g) e calorias de cada alimento do registro abaixo, usando a tabela TACO e porções brasileiras típicas quando a quantidade não for dita. Ela não come frutas: nunca sugira frutas.
+    const prompt=`Você é nutricionista esportivo. Estime proteína (g) e calorias de cada alimento do registro abaixo, usando a tabela TACO e porções brasileiras típicas quando a quantidade não for dita. Pessoa: ${PLANINFO.person||"adulto em plano de treino"}. Respeite as restrições dela.
 ${extraCtx||""}
-Contexto do dia: meta 165 g de proteína; já registrado antes deste item: ${soFar} g. Refeições do plano ainda não feitas: ${left.map(m=>m[1]+" "+m[2]+" ("+m[4]+" g)").join("; ")||"nenhuma"}.
+Contexto do dia: meta ${st.P.prot} g de proteína; já registrado antes deste item: ${soFar} g. Refeições do plano ainda não feitas: ${left.map(m=>m[1]+" "+m[2]+" ("+m[4]+" g)").join("; ")||"nenhuma"}.
 Registro: """${txt}"""
 Responda SOMENTE um JSON válido, sem texto fora dele, no formato:
-{"itens":[{"alimento":"texto curto","quantidade":"ex.: 150 g","proteina":0,"carbo":0,"gordura":0,"kcal":0}],"proteina":0,"carbo":0,"gordura":0,"kcal":0,"sugestao":"1 frase prática em português dizendo como completar a proteína que falta hoje, sem frutas, considerando as refeições do plano que faltam","alerta":null}`;
+{"itens":[{"alimento":"texto curto","quantidade":"ex.: 150 g","proteina":0,"carbo":0,"gordura":0,"kcal":0}],"proteina":0,"carbo":0,"gordura":0,"kcal":0,"sugestao":"1 frase prática em português dizendo como completar a proteína que falta hoje, respeitando as restrições, considerando as refeições do plano que faltam","alerta":null}`;
     const v=await sm.json(prompt,{modelTier:"quick"});
     if(v&&Array.isArray(v.itens)&&v.itens.length){ const p=v.itens.reduce((a,i)=>a+(+i.proteina||0),0), k=v.itens.reduce((a,i)=>a+(+i.kcal||0),0);
       r={itens:v.itens.map(i=>({alimento:String(i.alimento||""),quantidade:String(i.quantidade||""),proteina:Math.round(+i.proteina||0),kcal:Math.round(+i.kcal||0)})),proteina:Math.round(p),kcal:Math.round(k),carbo:Math.round(v.itens.reduce((a,i)=>a+(+i.carbo||0),0)),gordura:Math.round(v.itens.reduce((a,i)=>a+(+i.gordura||0),0)),sugestao:v.sugestao?String(v.sugestao):"",alerta:v.alerta?String(v.alerta):null,fonte:"claude"} }
@@ -1019,7 +1236,7 @@ function daySummary(date){ const s=setsOn(date).filter(x=>x.mode!=="tread"&&x.mo
 let dayDraft=null, dayDraftDate=null;
 function renderDia(){
   const info=dayInfo(sel); const saved=DAYS[sel]; const sm=daySummary(sel); const monday=fromIso(sel).getDay()===1||info.idx===29;
-  if(dayDraftDate!==sel){ dayDraftDate=sel; dayDraft=saved?{...saved}:{peso:"",cintura:"",sono:"",passos:"",proteina:null,creatina:null,energia:null,notas:""}; for(const k of ["peso","cintura","sono","passos","gordura","musculo","agua","visceral","tmb"]) if(dayDraft[k]==null) dayDraft[k]=""; if(dayDraft.proteina==null){const ds=dietStats(sel); if(ds.done) dayDraft.proteina=ds.prot>=150} }
+  if(dayDraftDate!==sel){ dayDraftDate=sel; dayDraft=saved?{...saved}:{peso:"",cintura:"",sono:"",passos:"",proteina:null,creatina:null,energia:null,notas:""}; for(const k of ["peso","cintura","sono","passos","gordura","musculo","agua","visceral","tmb"]) if(dayDraft[k]==null) dayDraft[k]=""; if(dayDraft.proteina==null){const ds=dietStats(sel); if(ds.done) dayDraft.proteina=ds.prot>=ds.P.prot-15} }
   const D=dayDraft; const tg=(f,v,l)=>`<button class="${D[f]===v?"on":""}" onclick="dset('${f}',${JSON.stringify(v)})">${l}</button>`;
   $("#view").innerHTML=`<div class="hero">${head(info)}<h1>Fim do dia</h1><div class="sub">${saved?"Dia já salvo. Pode editar e salvar de novo.":"Preencha antes de dormir. Leva 30 segundos."}</div></div>
   <div class="kpis"><div class="kpi"><div class="k">Séries</div><div class="v">${sm.series}</div></div><div class="kpi"><div class="k">Volume</div><div class="v">${sm.volume.toLocaleString("pt-BR")} kg</div><div class="d">carga × reps</div></div><div class="kpi"><div class="k">Cardio / tênis</div><div class="v">${sm.cardioMin} min</div></div><div class="kpi"><div class="k">Sessão</div><div class="v">${info.s==="REST"?"Descanso":info.s==="TENNIS"?"Tênis":"Treino "+info.s}</div></div></div>
@@ -1030,7 +1247,7 @@ function renderDia(){
     <div class="f"><label>Passos</label><input inputmode="numeric" value="${esc(D.passos)}" oninput="dset('passos',this.value,1)" placeholder="9000"></div></div>
     ${bioBlock(D)}
     ${(()=>{const ds=dietStats(sel);return ds.done?`<div class="hint n">Pela aba Dieta: ${ds.prot} g de proteína, ${ds.done} de ${ds.total} refeições, ${((ds.d.agua||0)/2).toLocaleString("pt-BR")} L de água.</div>`:""})()}
-    <div class="f"><label>Bateu 165 g de proteína?</label><div class="tg">${tg("proteina",true,"Sim")}${tg("proteina",false,"Não")}</div></div>
+    <div class="f"><label>Bateu ${PROT_T()} g de proteína?</label><div class="tg">${tg("proteina",true,"Sim")}${tg("proteina",false,"Não")}</div></div>
     <div class="f"><label>Tomou creatina?</label><div class="tg">${tg("creatina",true,"Sim")}${tg("creatina",false,"Não")}</div></div>
     <div class="f"><label>Energia no treino</label><div class="tg">${[1,2,3,4,5].map(x=>tg("energia",x,x)).join("")}</div></div>
     <div class="f"><label>Notas (dor, fome, o que mudar)</label><textarea rows="3" oninput="dset('notas',this.value,1)">${esc(D.notas)}</textarea></div>
