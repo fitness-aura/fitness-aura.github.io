@@ -203,9 +203,9 @@ details.card[open] summary::after{content:"−"}
 .plan .pp{font-size:34px;font-weight:800;margin-top:12px;letter-spacing:-.02em}
 .plan .pp small{font-size:15px;font-weight:600;color:var(--mut)}
 .plan .pe{font-size:12.5px;color:var(--ok);font-weight:700;margin-top:2px;min-height:17px}
-.plan ul{list-style:none;margin:12px 0 4px;padding:0}
-.plan li{font-size:14px;padding:5px 0 5px 26px;position:relative;line-height:1.35}
-.plan li:before{content:"✓";position:absolute;left:2px;color:var(--gold);font-weight:800}
+.plan ul,.feat{list-style:none;margin:12px 0 4px;padding:0}
+.feat li,.plan li{font-size:14px;padding:5px 0 5px 26px;position:relative;line-height:1.35}
+.feat li:before,.plan li:before{content:"✓";position:absolute;left:2px;color:var(--gold);font-weight:800}
 .plan li.no{color:var(--mut)}.plan li.no:before{content:"–";color:var(--mut)}
 .mac b{display:block;font-size:16px}.mac span{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
 .navd .today{display:flex;align-items:center;gap:6px}
@@ -583,39 +583,27 @@ window.treadStop=async()=>{ const min=Math.round(treadElapsed()/60); const code=
 window.logTennis=async()=>{const info=dayInfo(sel); await addSet({date:sel,day:info.day,session:"TENNIS",code:"T",ex:"tenis",name:"Tênis",set:1,w:0,reps:num($("#ten_m").value),rir:num($("#ten_e").value),mode:"tennis"}); toast("Tênis registrado ✓")};
 
 /* ===================== PLANOS ===================== */
-// Links de checkout: preencher quando o gateway (Asaas, Mercado Pago ou Stripe) estiver configurado
-const CHECKOUT={desafio:"",essencial_m:"",essencial_a:"",pro_m:"",pro_a:""};
 const PLANS=[
- {k:"essencial",n:"Aura Essencial",d:"O app completo para treinar e comer melhor sozinho",m:39.90,a:299,
-  f:["Treino guiado com ilustrações e técnica","Registro de cargas, RIR e timer de descanso","Esteira e cardio guiados por blocos","Cardápio-base por horário e metas de macros","Comeu diferente: a Aura recalcula o dia","Posso comer? Resposta na hora","Esportes somados às calorias","Evolução de peso, cintura e força"],
-  x:["Plano revisado por nutricionista e personal","Acompanhamento pelo WhatsApp"]},
- {k:"pro",n:"Aura Pro",d:"App + profissionais acompanhando você",m:179,a:1490,hl:"MAIS COMPLETO",
-  f:["Tudo do Aura Essencial","Plano alimentar individual feito por nutricionista (CRN)","Treino individual revisado por personal (CREF)","Reajuste do plano a cada 15 dias","Acompanhamento pelo WhatsApp","Avaliação mensal por fotos e medidas","Alerta e contato se você sumir do treino"],x:[]}
+ {k:"essencial_a",n:"Aura Anual",d:"12 meses de Aura completa",price:299,per:" /ano",pe:"equivale a R$ 24,92 por mês · economize 38% · até 12x no cartão",hl:"MAIS VANTAJOSO",btn:"Assinar plano anual"},
+ {k:"essencial_m",n:"Aura Mensal",d:"Aura completa, mês a mês",price:39.90,per:" /mês",pe:"sem fidelidade, renove quando quiser",btn:"Assinar plano mensal"}
 ];
-let billing="a";
+const PLAN_FEAT=["Treino guiado com ilustrações e técnica","Registro de cargas, RIR e timer de descanso","Esteira e cardio guiados por blocos","Cardápio-base por horário e metas de macros","Comeu diferente: a Aura recalcula o dia","Posso comer? Resposta na hora","Esportes somados às calorias","Evolução de peso, cintura e força"];
 const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 function renderPlanos(){
   const acc=(typeof accountCard==="function")?accountCard():"";
-  const cards=PLANS.map(p=>{ const an=billing==="a"; const price=an?p.a:p.m; const eq=p.a/12; const save=Math.round((1-p.a/(p.m*12))*100);
-    return `<div class="plan ${p.hl?"hl":""}">${p.hl?`<span class="badge">${p.hl}</span>`:""}<div class="pn">${p.n}</div><div class="pd">${p.d}</div>
-      <div class="pp">${brl(price)}<small>${an?" /ano":" /mês"}</small></div>
-      <div class="pe">${an?`equivale a ${brl(eq)} por mês · economize ${save}%`:`ou ${brl(p.a)} no plano anual`}</div>
-      <ul>${p.f.map(x=>`<li>${esc(x)}</li>`).join("")}${p.x.map(x=>`<li class="no">${esc(x)}</li>`).join("")}</ul>
-      <button class="big" onclick="buy('${p.k}_${billing}')">${an?"Assinar plano anual":"Assinar plano mensal"}</button></div>` }).join("");
-  $("#view").innerHTML=`${acc}<div class="hero"><div class="kick">Planos Aura</div><h1>Escolha seu plano</h1><div class="sub">Cancele quando quiser. 7 dias de garantia: se não gostar, devolvemos 100%.</div></div>
-    <div class="bill"><button class="${billing==="m"?"on":""}" onclick="billing='m';render(true)">Mensal</button><button class="${billing==="a"?"on":""}" onclick="billing='a';render(true)">Anual<span class="off">até -38%</span></button></div>
+  const cards=PLANS.map(p=>`<div class="plan ${p.hl?"hl":""}">${p.hl?`<span class="badge">${p.hl}</span>`:""}<div class="pn">${p.n}</div><div class="pd">${p.d}</div>
+      <div class="pp">${brl(p.price)}<small>${p.per}</small></div><div class="pe">${p.pe}</div>
+      <button class="big" onclick="buy('${p.k}')">${p.btn}</button></div>`).join("");
+  $("#view").innerHTML=`${acc}<div class="hero"><div class="kick">Planos Aura</div><h1>Escolha seu plano</h1><div class="sub">Os dois planos liberam a Aura completa. Cancele quando quiser. 7 dias de garantia: se não gostar, devolvemos 100%.</div></div>
     ${cards}
-    <div class="plan" style="border-style:dashed"><div class="pn">Desafio Aura 30 dias</div><div class="pd">Pagamento único, sem renovação automática</div>
-      <div class="pp">${brl(127)}</div><div class="pe">inclui 30 dias de Aura Essencial</div>
-      <ul><li>Programa de 30 dias de treino e dieta</li><li>Calendário com fases e progressão de carga</li><li>Reavaliação no dia 30</li></ul>
-      <button class="ghost" style="width:100%;height:50px" onclick="buy('desafio')">Começar o desafio</button></div>
+    <div class="card"><h3>O que você recebe</h3><ul class="feat">${PLAN_FEAT.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
     <div class="card"><h3>Perguntas frequentes</h3>
       <div class="sub" style="color:var(--ink);margin-top:8px"><b>Posso cancelar?</b><br>Sim, a qualquer momento. Você usa até o fim do período pago.</div>
-      <div class="sub" style="color:var(--ink);margin-top:10px"><b>Como pago?</b><br>Pix ou cartão de crédito. O plano anual pode ser parcelado no cartão.</div>
-      <div class="sub" style="color:var(--ink);margin-top:10px"><b>Posso trocar de plano?</b><br>Sim. Ao subir para o Pro, o valor já pago é descontado.</div>
+      <div class="sub" style="color:var(--ink);margin-top:10px"><b>Como pago?</b><br>Pix ou cartão de crédito. O plano anual pode ser parcelado em até 12x no cartão.</div>
+      <div class="sub" style="color:var(--ink);margin-top:10px"><b>Posso trocar de plano?</b><br>Sim. Ao passar do mensal para o anual, os dias que ainda faltam continuam valendo.</div>
       <div class="sub" style="color:var(--ink);margin-top:10px"><b>E a garantia?</b><br>Nos primeiros 7 dias, se não gostar, devolvemos 100% do valor.</div></div>`;
 }
-window.buy=k=>{ if(typeof gBuy==='function'&&sb&&USER){ renderPay(); gBuy(k); return } const u=CHECKOUT[k]; if(u){ location.href=u; return } toast("Pagamento em configuração. Em breve!") };
+window.buy=k=>{ if(typeof gBuy==='function'&&typeof sb!=="undefined"&&sb&&USER){ renderPay(); gBuy(k); return } toast("Pagamento em configuração. Em breve!") };
 
 /* ===================== METAS ===================== */
 function goalsCard(ds){
@@ -667,7 +655,7 @@ function renderHome(){
   </div>
   ${info.note?`<div class="hint">${esc(info.note)}</div>`:""}
   <div class="prof" style="background:linear-gradient(135deg,#a8792b,#8a611d);border:0;color:#fff"><div class="kick" style="color:#f3e2bb">Planos Aura</div><div style="font-size:19px;font-weight:800;margin:6px 0 4px">Assine e leve a Aura completa</div>
-    <div style="font-size:13.5px;color:#f6ead0">Essencial a partir de ${brl(299/12)} por mês no anual. Pro com nutricionista e personal.</div>
+    <div style="font-size:13.5px;color:#f6ead0">Mensal por ${brl(39.9)} ou anual por ${brl(299)}, que sai a ${brl(299/12)} por mês.</div>
     <button class="big" style="background:#fff;color:#8a611d" onclick="go('planos')">Ver planos</button></div>`;
 }
 
@@ -1139,7 +1127,7 @@ document.addEventListener("click",e=>{ const c=$("#cal"); if(c&&c.style.display=
 const SB_URL="https://enhifvedsccbkczaaohn.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaGlmdmVkc2NjYmtjemFhb2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzA0NDYsImV4cCI6MjEwOTgwNjQ0Nn0.VhC6b881jBsLtETbuitdU5JUOkgUP8wSZzmf6SoAMbo";
 let sb=null, USER=null, SUB=null, gateMode="login", gateBusy=false, gateMsg="", pushT=null, cloudReady=false;
-const PLAN_NAME={essencial:"Aura Essencial",pro:"Aura Pro"};
+const PLAN_NAME={essencial:"Aura",pro:"Aura"};
 const fmtD=s=>{try{return new Date(s).toLocaleDateString("pt-BR")}catch(e){return ""}};
 const subActive=s=>!!(s&&s.status==="active"&&new Date(s.expires_at)>new Date());
 const G=()=>document.getElementById("gate");
@@ -1227,13 +1215,8 @@ function renderPay(){
   const opt=(k,t,p,s,hl)=>`<button class="gopt ${hl?"hl":""}" onclick="gBuy('${k}')"><div><b>${t}</b><span>${s}</span></div><em>${brl(p)}</em></button>`;
   gateShow(`<div class="gcard"><h2>${nm?"Olá, "+esc(nm.split(" ")[0])+"!":"Quase lá!"}</h2>
     <p>${exp?"Seu plano venceu em "+fmtD(SUB.expires_at)+". Renove para continuar usando a Aura.":"Escolha seu plano para liberar a Aura. Pix ou cartão, liberação automática."}</p>${gMsg()}
-    <div class="ggrp">Aura Essencial · app completo</div>
-    ${opt("essencial_a","Anual","299","equivale a R$ 24,92/mês · até 12x",true)}
-    ${opt("essencial_m","Mensal","39.90","renove quando quiser")}
-    ${opt("desafio","Desafio 30 dias","127","pagamento único, programa de 30 dias")}
-    <div class="ggrp">Aura Pro · app + nutricionista e personal</div>
-    ${opt("pro_a","Anual","1490","equivale a R$ 124,17/mês · até 12x")}
-    ${opt("pro_m","Mensal","179","acompanhamento pelo WhatsApp")}
+    ${opt("essencial_a","Anual","299","equivale a R$ 24,92/mês · até 12x no cartão",true)}
+    ${opt("essencial_m","Mensal","39.90","sem fidelidade, renove quando quiser")}
     <div class="gsmall">7 dias de garantia: se não gostar, devolvemos 100%. Pagamento seguro pelo Mercado Pago.</div>
     <button class="glink" onclick="gRecheck()">Já paguei, verificar</button>
     <div class="gsmall">Conectado como ${esc(USER?.email||"")} · <a href="#" onclick="gLogout();return false">Sair</a></div></div>`);
