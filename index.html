@@ -521,7 +521,7 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${baseLink("treino")}`; return }
   if(info.s==="TENNIS"){ const t=setsOn(sel).find(s=>s.ex==="tenis");
     v.innerHTML=`<div class="hero">${head(info)}<h1>Tênis no saibro</h1><div class="sub">10h às 12h. Café reforçado às 8h, eletrólitos na garrafa e isotônico ou gel no intervalo. Sem musculação hoje.</div></div>
     <div class="card"><h3>Registrar o tênis</h3>
@@ -529,7 +529,7 @@ function renderTreino(){
       `<div class="grid2"><div class="stepper"><label>Minutos</label><div class="st"><button onclick="adj('ten_m',-10)">−</button><input id="ten_m" inputmode="numeric" value="120"><button onclick="adj('ten_m',10)">+</button></div></div>
       <div class="stepper"><label>Esforço 1 a 10</label><div class="st"><button onclick="adj('ten_e',-1)">−</button><input id="ten_e" inputmode="numeric" value="7"><button onclick="adj('ten_e',1)">+</button></div></div></div>
       <button class="big" onclick="logTennis()">Registrar tênis</button>`}
-    </div>${uploadCard()}${baseLink("treino")}`; return }
+    </div>${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -550,7 +550,7 @@ function renderTreino(){
     <div class="hint n">Aquecimento (10 min): 7 min de esteira leve, mobilidade de quadril e ombro, 1 série de rotação externa e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
-    ${uploadCard()}${baseLink("treino")}`;
+    ${baseLink("treino")}`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
