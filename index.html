@@ -1154,11 +1154,15 @@ async function shrinkImage(file){
 window.upPick=async input=>{
   const f=input.files&&input.files[0]; if(!f) return; UP={busy:true,res:null,name:f.name,err:""}; render(true);
   try{
-    const nm=f.name.toLowerCase(); let body={name:f.name,hoje:iso(new Date())};
-    if(f.type==="application/pdf"||nm.endsWith(".pdf")){ if(f.size>10e6) throw new Error("O PDF passa de 10 MB. Envie só as páginas com os resultados."); body.mime="application/pdf"; body.data=await fileB64(f) }
-    else if(f.type.startsWith("image/")||/\.(jpe?g|png|webp|heic|heif)$/.test(nm)){ try{ body.mime="image/jpeg"; body.data=await shrinkImage(f) }catch(e){ throw new Error("Não consegui abrir essa imagem. Tire um print da tela e envie o print.") } }
-    else if(nm.endsWith(".fit")) throw new Error("Arquivos .FIT ainda não são lidos. Envie um print da tela do treino ou exporte em CSV/TCX.");
-    else { if(f.size>2e6) throw new Error("Arquivo muito grande. Envie um print ou PDF com os resultados."); body.text=await f.text() }
+    const nm=f.name.toLowerCase(); let body={name:f.name,hoje:iso(new Date())}; let blob=null, mime="";
+    if(f.type==="application/pdf"||nm.endsWith(".pdf")){ if(f.size>20e6) throw new Error("O PDF passa de 20 MB. Envie só as páginas com os resultados."); blob=f; mime="application/pdf" }
+    else if(f.type.startsWith("image/")||/\.(jpe?g|png|webp|heic|heif)$/.test(nm)){ try{ const b64=await shrinkImage(f); blob=await (await fetch("data:image/jpeg;base64,"+b64)).blob(); mime="image/jpeg" }catch(e){ throw new Error("Não consegui abrir essa imagem. Tire um print da tela e envie o print.") } }
+    else if(nm.endsWith(".fit")) throw new Error("Arquivos .FIT ainda não são lidos. Envie o PDF ou um print do treino.");
+    else { if(f.size>2e6) throw new Error("Arquivo muito grande. Envie o PDF com os resultados."); body.text=await f.text() }
+    if(blob){ const path=`${USER.id}/${Date.now()}.${mime==="application/pdf"?"pdf":"jpg"}`;
+      const up=await sb.storage.from("uploads").upload(path,blob,{contentType:mime,upsert:false});
+      if(up.error) throw new Error("Não consegui enviar o arquivo. Verifique a internet e tente de novo.");
+      body.path=path; body.mime=mime }
     const {data,error}=await sb.functions.invoke("extract",{body});
     if(error||!data?.ok){ let d=data; try{ d=d||await error?.context?.json() }catch(e){}
       const m={leitor_nao_configurado:"O leitor de arquivos ainda está em configuração. Em breve!",sem_plano:"Envio de arquivos é exclusivo para assinantes.",limite_diario:"Você chegou ao limite de 20 arquivos por dia. Tente amanhã.",formato:"Formato não suportado. Envie foto, PDF ou CSV.",sem_resultado:"Não consegui ler resultados nesse arquivo. Tente uma foto mais nítida."};
