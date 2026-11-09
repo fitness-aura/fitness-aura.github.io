@@ -639,6 +639,7 @@ function renderHome(){
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
   $("#view").innerHTML=inst+`<div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>
   ${profileCard()}
+  ${uploadCard()}
   <div class="todaycard"><div class="kick">${greet}${PROFILE&&PROFILE.answers&&PROFILE.answers.nome?", "+esc(PROFILE.answers.nome.split(" ")[0]):""}</div>
     <div style="font-size:20px;font-weight:800;margin-top:6px">${info.inPlan?`Dia ${info.day} de 30 · `:""}${sess}</div>
     <div class="sub">${esc(sessD)}${info.inPlan?` · ${PHASES[info.phase].n}`:""}</div>
@@ -679,7 +680,9 @@ const SPORTLIST={
  danca:{n:"Dança",e:"💃",i:[["Moderada",5.0],["Intensa",7.8]]},
  golfe:{n:"Golfe",e:"⛳",i:[["Andando",4.8]]},
  remo:{n:"Remo",e:"🚣",i:[["Moderado",7.0],["Forte",8.5]]},
- surfe:{n:"Surfe",e:"🏄",i:[["Geral",3.0]]}
+ surfe:{n:"Surfe",e:"🏄",i:[["Geral",3.0]]},
+ musculacao:{n:"Musculação",e:"🏋️",i:[["Geral",5.0]]},
+ outro:{n:"Treino",e:"⌚",i:[["Geral",5.0]]}
 };
 const DSHORT=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const EATBACK=0.6;
@@ -1004,15 +1007,17 @@ function daySummary(date){ const s=setsOn(date).filter(x=>x.mode!=="tread"&&x.mo
 let dayDraft=null, dayDraftDate=null;
 function renderDia(){
   const info=dayInfo(sel); const saved=DAYS[sel]; const sm=daySummary(sel); const monday=fromIso(sel).getDay()===1||info.idx===29;
-  if(dayDraftDate!==sel){ dayDraftDate=sel; dayDraft=saved?{...saved}:{peso:"",cintura:"",sono:"",passos:"",proteina:null,creatina:null,energia:null,notas:""}; for(const k of ["peso","cintura","sono","passos"]) if(dayDraft[k]==null) dayDraft[k]=""; if(dayDraft.proteina==null){const ds=dietStats(sel); if(ds.done) dayDraft.proteina=ds.prot>=150} }
+  if(dayDraftDate!==sel){ dayDraftDate=sel; dayDraft=saved?{...saved}:{peso:"",cintura:"",sono:"",passos:"",proteina:null,creatina:null,energia:null,notas:""}; for(const k of ["peso","cintura","sono","passos","gordura","musculo","agua","visceral","tmb"]) if(dayDraft[k]==null) dayDraft[k]=""; if(dayDraft.proteina==null){const ds=dietStats(sel); if(ds.done) dayDraft.proteina=ds.prot>=150} }
   const D=dayDraft; const tg=(f,v,l)=>`<button class="${D[f]===v?"on":""}" onclick="dset('${f}',${JSON.stringify(v)})">${l}</button>`;
   $("#view").innerHTML=`<div class="hero">${head(info)}<h1>Fim do dia</h1><div class="sub">${saved?"Dia já salvo. Pode editar e salvar de novo.":"Preencha antes de dormir. Leva 30 segundos."}</div></div>
+  ${uploadCard()}
   <div class="kpis"><div class="kpi"><div class="k">Séries</div><div class="v">${sm.series}</div></div><div class="kpi"><div class="k">Volume</div><div class="v">${sm.volume.toLocaleString("pt-BR")} kg</div><div class="d">carga × reps</div></div><div class="kpi"><div class="k">Cardio / tênis</div><div class="v">${sm.cardioMin} min</div></div><div class="kpi"><div class="k">Sessão</div><div class="v">${info.s==="REST"?"Descanso":info.s==="TENNIS"?"Tênis":"Treino "+info.s}</div></div></div>
   <div class="card">
     <div class="grid2"><div class="f"><label>Peso em jejum (kg)</label><input inputmode="decimal" value="${esc(D.peso)}" oninput="dset('peso',this.value,1)" placeholder="82,0"></div>
     <div class="f"><label>Cintura no umbigo (cm)${monday?" · hoje":""}</label><input inputmode="decimal" value="${esc(D.cintura)}" oninput="dset('cintura',this.value,1)" placeholder="${monday?"medir hoje":"opcional"}"></div>
     <div class="f"><label>Sono da noite (h)</label><input inputmode="decimal" value="${esc(D.sono)}" oninput="dset('sono',this.value,1)" placeholder="7,5"></div>
     <div class="f"><label>Passos</label><input inputmode="numeric" value="${esc(D.passos)}" oninput="dset('passos',this.value,1)" placeholder="9000"></div></div>
+    ${bioBlock(D)}
     ${(()=>{const ds=dietStats(sel);return ds.done?`<div class="hint n">Pela aba Dieta: ${ds.prot} g de proteína, ${ds.done} de ${ds.total} refeições, ${((ds.d.agua||0)/2).toLocaleString("pt-BR")} L de água.</div>`:""})()}
     <div class="f"><label>Bateu 165 g de proteína?</label><div class="tg">${tg("proteina",true,"Sim")}${tg("proteina",false,"Não")}</div></div>
     <div class="f"><label>Tomou creatina?</label><div class="tg">${tg("creatina",true,"Sim")}${tg("creatina",false,"Não")}</div></div>
@@ -1023,7 +1028,7 @@ function renderDia(){
 }
 window.dset=(f,v,silent)=>{dayDraft[f]=v; if(!silent) renderDia()};
 window.saveToday=()=>{const info=dayInfo(sel); const sm=daySummary(sel); const D=dayDraft;
-  const ds=dietStats(sel); const o={dietaProteina:ds.prot,dietaRefeicoes:ds.done,dietaTotal:ds.total,agua:(ds.d.agua||0)/2,date:sel,day:info.day,session:info.s,peso:num(D.peso)||null,cintura:num(D.cintura)||null,sono:num(D.sono)||null,passos:num(D.passos)||null,proteina:D.proteina,creatina:D.creatina,energia:D.energia,notas:D.notas||"",...sm,savedAt:new Date().toISOString()};
+  const ds=dietStats(sel); const o={dietaProteina:ds.prot,dietaRefeicoes:ds.done,dietaTotal:ds.total,agua:(ds.d.agua||0)/2,date:sel,day:info.day,session:info.s,peso:num(D.peso)||null,cintura:num(D.cintura)||null,sono:num(D.sono)||null,passos:num(D.passos)||null,gordura:num(D.gordura)||null,musculo:num(D.musculo)||null,agua:num(D.agua)||null,visceral:num(D.visceral)||null,tmb:num(D.tmb)||null,proteina:D.proteina,creatina:D.creatina,energia:D.energia,notas:D.notas||"",...sm,savedAt:new Date().toISOString()};
   saveDay(sel,o)};
 
 /* ===================== EVOLUÇÃO ===================== */
@@ -1044,7 +1049,7 @@ function bars(items){ if(!items.length)return `<div class="empty">Sem dados aind
 function renderEvo(){
   const todayIso=iso(new Date());
   const dates=[...new Set(SETS.map(s=>s.date))].sort();
-  const trainDays=dates.filter(d=>SETS.some(s=>s.date===d&&s.mode!=="tennis"));
+  const trainDays=dates.filter(d=>SETS.some(s=>s.date===d&&s.mode!=="tennis"&&s.mode!=="sport"));
   const elapsed=Math.max(0,Math.min(30,Math.round((fromIso(todayIso)-START)/864e5)+1));
   let planned=0; for(let i=0;i<elapsed;i++){const d=new Date(START);d.setDate(d.getDate()+i); const s=WEEK[d.getDay()]; if(s!=="REST"&&s!=="TENNIS")planned++}
   const dayList=Object.values(DAYS).sort((a,b)=>a.date<b.date?-1:1);
@@ -1053,7 +1058,7 @@ function renderEvo(){
   const totVol=SETS.filter(s=>s.mode==="load").reduce((a,s)=>a+s.w*s.reps,0);
   const kp=`<div class="kpis">
     <div class="kpi"><div class="k">Treinos feitos</div><div class="v">${trainDays.length}<span style="font-size:14px;color:#7a7f8c"> / ${planned}</span></div><div class="d">planejados até hoje</div></div>
-    <div class="kpi"><div class="k">Volume total</div><div class="v">${Math.round(totVol/1000*10)/10} t</div><div class="d">${SETS.filter(s=>s.mode!=="tread"&&s.mode!=="simple"&&s.mode!=="tennis").length} séries</div></div>
+    <div class="kpi"><div class="k">Volume total</div><div class="v">${Math.round(totVol/1000*10)/10} t</div><div class="d">${SETS.filter(s=>s.mode!=="tread"&&s.mode!=="simple"&&s.mode!=="tennis"&&s.mode!=="sport").length} séries</div></div>
     <div class="kpi"><div class="k">Peso</div><div class="v">${pesos.length?fmtKg(pesos[pesos.length-1].peso)+" kg":"--"}</div><div class="d ${dp!=null?(dp<=0?"up":"down"):""}">${dp!=null?(dp>0?"+":"")+fmtKg(Math.round(dp*10)/10)+" kg desde "+br(pesos[0].date):"registre no Fim do dia"}</div></div>
     <div class="kpi"><div class="k">Cintura</div><div class="v">${cint.length?fmtKg(cint[cint.length-1].cintura)+" cm":"--"}</div><div class="d ${dc!=null?(dc<=0?"up":"down"):""}">${dc!=null?(dc>0?"+":"")+fmtKg(Math.round(dc*10)/10)+" cm":"medir às segundas"}</div></div></div>`;
   // weekly avg weight
@@ -1076,7 +1081,7 @@ function renderEvo(){
   const sonoM=dayList.filter(d=>d.sono).length?dayList.filter(d=>d.sono).reduce((a,d)=>a+d.sono,0)/dayList.filter(d=>d.sono).length:null;
   $("#view").innerHTML=`<div class="hero"><div class="kick">Evolução</div><h1>Seus números</h1><div class="sub">Atualiza sozinho a cada série registrada e a cada dia salvo.</div></div>${kp}
   <div class="seg">${[["corpo","Corpo"],["forca","Força"],["volume","Volume"],["dias","Dias"]].map(([k,l])=>`<button class="${evoView===k?"on":""}" onclick="evoSet('${k}')">${l}</button>`).join("")}</div>
-  ${evoView==="corpo"?`<div class="card"><h3>Peso em jejum</h3>${lineChart(pesos.map(d=>({l:br(d.date),y:d.peso})),{unit:" kg"})}<div class="sub" style="margin-top:6px">${wkTxt||"Use a média da semana, não o número do dia."}</div></div>
+  ${evoView==="corpo"?`<div class="card"><h3>Peso em jejum</h3>${lineChart(pesos.map(d=>({l:br(d.date),y:d.peso})),{unit:" kg"})}<div class="sub" style="margin-top:6px">${wkTxt||"Use a média da semana, não o número do dia."}</div></div>${bioCharts(dayList)}
     <div class="card"><h3>Cintura</h3>${lineChart(cint.map(d=>({l:br(d.date),y:d.cintura})),{unit:" cm",color:"#2e8b57"})}</div>
     <div class="card"><h3>Hábitos</h3><table><tr><td>Dias com proteína batida</td><td><b>${adh!=null?adh+"%":"--"}</b></td></tr><tr><td>Dias com creatina</td><td><b>${cr!=null?cr+"%":"--"}</b></td></tr><tr><td>Refeições do plano cumpridas</td><td><b>${(()=>{const ks=Object.keys(DIET);if(!ks.length)return "--";let a=0,t=0;ks.forEach(k=>{const x=dietStats(k);a+=x.done;t+=x.total});return Math.round(a/t*100)+"%"})()}</b></td></tr><tr><td>Sono médio</td><td><b>${sonoM?fmtKg(Math.round(sonoM*10)/10)+" h":"--"}</b></td></tr></table></div>`:""}
   ${evoView==="forca"?`<div class="card"><h3>Carga máxima por treino</h3>${loadKeys.length?`<select onchange="evoPick(this.value)" style="margin-bottom:10px">${loadKeys.map(k=>`<option value="${k}" ${k===evoEx?"selected":""}>${esc(EX[k].n)}</option>`).join("")}</select>${lineChart(exPts,{unit:" kg"})}<table style="margin-top:8px"><tr><th>Data</th><th>Séries</th><th>Volume</th></tr>${exTbl}</table>`:`<div class="empty">Registre séries para ver a progressão.</div>`}</div>`:""}
@@ -1091,6 +1096,84 @@ window.importAll=()=>{ try{ const j=JSON.parse(document.getElementById("impTxt")
   lsSave(); toast("Dados importados ✓"); render(true) }catch(e){ toast("Não consegui ler os dados",true) } };
 window.evoSet=k=>{evoView=k;renderEvo()}; window.evoPick=k=>{evoEx=k;renderEvo()};
 window.copyAll=async()=>{try{await navigator.clipboard.writeText(JSON.stringify({sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS}));toast("Copiado ✓")}catch(e){toast("Não foi possível copiar",true)}};
+
+/* ===================== BIOIMPEDÂNCIA + ENVIO DE ARQUIVOS ===================== */
+const BIO=[["gordura","Gordura corporal (%)","22,5"],["musculo","Massa muscular (kg)","58,0"],["agua","Água corporal (%)","55,0"],["visceral","Gordura visceral","9"],["tmb","Taxa metabólica basal (kcal)","1750"]];
+const BIOK=BIO.map(b=>b[0]);
+function bioBlock(D){
+  return `<div class="f" style="margin-top:6px"><label style="color:var(--gold2);font-weight:800">Bioimpedância · FitDays ou outra balança (opcional)</label></div>
+    <div class="grid2">${BIO.map(([k,l,ph])=>`<div class="f"><label>${l}</label><input inputmode="decimal" value="${esc(D[k]??"")}" oninput="dset('${k}',this.value,1)" placeholder="${ph}"></div>`).join("")}</div>`;
+}
+function bioCharts(dayList){
+  const g=dayList.filter(d=>d.gordura), mu=dayList.filter(d=>d.musculo), vi=dayList.filter(d=>d.visceral);
+  if(!g.length&&!mu.length) return `<div class="card"><h3>Bioimpedância</h3><div class="sub">Registre % de gordura e massa muscular no Fim do dia, ou envie a foto ou o PDF da sua balança pelo botão "Enviar resultados".</div></div>`;
+  const dlt=(a,k,u)=>a.length>1?` · ${a[a.length-1][k]-a[0][k]>0?"+":""}${fmtKg(Math.round((a[a.length-1][k]-a[0][k])*10)/10)}${u} desde ${br(a[0].date)}`:"";
+  return `${g.length?`<div class="card"><h3>Gordura corporal</h3>${lineChart(g.map(d=>({l:br(d.date),y:d.gordura})),{unit:"%",color:"#c0392b"})}<div class="sub" style="margin-top:6px">Meça sempre no mesmo horário, em jejum${dlt(g,"gordura"," pontos")}</div></div>`:""}
+  ${mu.length?`<div class="card"><h3>Massa muscular</h3>${lineChart(mu.map(d=>({l:br(d.date),y:d.musculo})),{unit:" kg",color:"#2e8b57"})}<div class="sub" style="margin-top:6px">Subir aqui com a cintura caindo é o melhor sinal${dlt(mu,"musculo"," kg")}</div></div>`:""}
+  ${vi.length>1?`<div class="card"><h3>Gordura visceral</h3>${lineChart(vi.map(d=>({l:br(d.date),y:d.visceral})),{unit:""})}</div>`:""}`;
+}
+
+let UP={busy:false,res:null,name:"",err:""};
+const upOn=()=>typeof sb!=="undefined"&&!!sb&&!!USER;
+function uploadCard(){
+  if(!upOn()) return "";
+  const head=`<div class="kick">Enviar resultados</div>`;
+  if(UP.busy) return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">Lendo ${esc(UP.name)}…</div><div class="sub">A Aura está procurando bioimpedância, treinos e refeições no arquivo.</div><div class="gspin"></div></div>`;
+  if(UP.res){ const r=UP.res; const bio=(r.bio||[]).filter(b=>BIOK.concat("peso").some(k=>b[k]!=null)); const tr=(r.treinos||[]).filter(t=>t.minutos||t.kcal); const rf=(r.refeicoes||[]).filter(f=>f.proteina!=null||f.kcal!=null);
+    const dt=d=>d?br(d):br(sel)+" (dia selecionado)";
+    const li=[]; bio.forEach(b=>li.push(`<li><b>Bioimpedância ${dt(b.data)}</b>: ${[b.peso!=null?fmtKg(b.peso)+" kg":"",b.gordura!=null?fmtKg(b.gordura)+"% gordura":"",b.musculo!=null?fmtKg(b.musculo)+" kg músculo":"",b.agua!=null?fmtKg(b.agua)+"% água":"",b.visceral!=null?"visceral "+fmtKg(b.visceral):"",b.tmb!=null?b.tmb+" kcal TMB":""].filter(Boolean).join(" · ")}</li>`));
+    tr.forEach(t=>li.push(`<li><b>${esc(t.nome||(SPORTLIST[t.esporte]||{}).n||"Treino")} ${dt(t.data)}</b>: ${[t.minutos?t.minutos+" min":"",t.kcal?t.kcal+" kcal":"",t.distancia_km?fmtKg(t.distancia_km)+" km":""].filter(Boolean).join(" · ")}</li>`));
+    rf.forEach(f=>li.push(`<li><b>${esc(f.descricao||"Refeição")} ${dt(f.data)}</b>: ${[f.proteina!=null?f.proteina+" g prot.":"",f.kcal!=null?f.kcal+" kcal":""].filter(Boolean).join(" · ")}</li>`));
+    return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">${li.length?"A Aura encontrou":"Nada para adicionar"}</div><div class="sub">${esc(r.resumo||"")}</div>
+      ${li.length?`<ul class="feat" style="margin-top:8px">${li.join("")}</ul>`:""}${r.aviso?`<div class="hint" style="margin-top:8px">${esc(r.aviso)}</div>`:""}
+      ${li.length?`<button class="big" onclick="upApply()">Adicionar ao meu plano</button>`:""}<button class="ghost" style="width:100%;margin-top:8px" onclick="upReset()">${li.length?"Descartar":"Enviar outro arquivo"}</button></div>`; }
+  return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">Tem resultados em foto ou PDF?</div>
+    <div class="sub">Envie o print ou o PDF da sua bioimpedância (FitDays e outras), do relógio (Garmin, Samsung) ou da sua dieta. A Aura lê e adiciona ao seu plano.</div>
+    ${UP.err?`<div class="hint" style="margin-top:8px;color:var(--bad)">${esc(UP.err)}</div>`:""}
+    <label class="big" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Enviar arquivo<input type="file" accept="image/*,application/pdf,.csv,.txt,.json,.xml,.gpx,.tcx" style="display:none" onchange="upPick(this)"></label></div>`;
+}
+window.upReset=()=>{ UP={busy:false,res:null,name:"",err:""}; render(true) };
+function fileB64(blob){ return new Promise((ok,no)=>{ const fr=new FileReader(); fr.onload=()=>ok(String(fr.result).split(",")[1]); fr.onerror=no; fr.readAsDataURL(blob) }) }
+async function shrinkImage(file){
+  const url=URL.createObjectURL(file); try{
+    const img=await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url });
+    const s=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight)); const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*s); c.height=Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height); const b=await new Promise(ok=>c.toBlob(ok,"image/jpeg",.88)); return await fileB64(b);
+  } finally{ URL.revokeObjectURL(url) } }
+window.upPick=async input=>{
+  const f=input.files&&input.files[0]; if(!f) return; UP={busy:true,res:null,name:f.name,err:""}; render(true);
+  try{
+    const nm=f.name.toLowerCase(); let body={name:f.name,hoje:iso(new Date())};
+    if(f.type==="application/pdf"||nm.endsWith(".pdf")){ if(f.size>10e6) throw new Error("O PDF passa de 10 MB. Envie só as páginas com os resultados."); body.mime="application/pdf"; body.data=await fileB64(f) }
+    else if(f.type.startsWith("image/")||/\.(jpe?g|png|webp|heic|heif)$/.test(nm)){ try{ body.mime="image/jpeg"; body.data=await shrinkImage(f) }catch(e){ throw new Error("Não consegui abrir essa imagem. Tire um print da tela e envie o print.") } }
+    else if(nm.endsWith(".fit")) throw new Error("Arquivos .FIT ainda não são lidos. Envie um print da tela do treino ou exporte em CSV/TCX.");
+    else { if(f.size>2e6) throw new Error("Arquivo muito grande. Envie um print ou PDF com os resultados."); body.text=await f.text() }
+    const {data,error}=await sb.functions.invoke("extract",{body});
+    if(error||!data?.ok){ let d=data; try{ d=d||await error?.context?.json() }catch(e){}
+      const m={leitor_nao_configurado:"O leitor de arquivos ainda está em configuração. Em breve!",sem_plano:"Envio de arquivos é exclusivo para assinantes.",limite_diario:"Você chegou ao limite de 20 arquivos por dia. Tente amanhã.",formato:"Formato não suportado. Envie foto, PDF ou CSV.",sem_resultado:"Não consegui ler resultados nesse arquivo. Tente uma foto mais nítida."};
+      throw new Error(m[d?.error]||"Não consegui ler o arquivo agora. Tente de novo.") }
+    UP={busy:false,res:data.result||{},name:f.name,err:""};
+  }catch(e){ UP={busy:false,res:null,name:"",err:e.message||"Erro ao enviar."} }
+  render(true);
+};
+window.upApply=async()=>{
+  const r=UP.res||{}; let nb=0,nt=0,nf=0; const okDate=d=>d&&/^\d{4}-\d{2}-\d{2}$/.test(d)?d:sel;
+  (r.bio||[]).forEach(b=>{ const date=okDate(b.data); const cur=DAYS[date]||{date};
+    const o={...cur,date}; let any=false; ["peso",...BIOK,"imc","massa_ossea","idade_metabolica"].forEach(k=>{ if(b[k]!=null&&!isNaN(+b[k])){ o[k]=+b[k]; any=true } });
+    if(any){ o.bioFonte=UP.name; o.savedAt=o.savedAt||new Date().toISOString(); DAYS[date]=o; nb++ } });
+  if(nb){ dayDraftDate=null; lsSave() }
+  for(const t of (r.treinos||[])){ if(!t.minutos&&!t.kcal) continue; const date=okDate(t.data); const info=dayInfo(date); const sp=SPORTLIST[t.esporte]?t.esporte:"outro";
+    const min=Math.round(+t.minutos||0); const kc=t.kcal?Math.round(+t.kcal):sessKcal({sport:sp,int:0},min||30).gross;
+    if(SETS.some(s=>s.date===date&&s.ex===sp&&s.reps===min&&s.kcal===kc)) continue;
+    await addSet({date,day:info.day,session:info.s,code:"SP",ex:sp,name:t.nome||SPORTLIST[sp].n,set:1,w:0,reps:min,rir:null,mode:"sport",kcal:kc,kcalNet:Math.round(kc*.85),fonte:"arquivo"}); nt++ }
+  const byDate={}; (r.refeicoes||[]).forEach(f=>{ if(f.proteina==null&&f.kcal==null) return; (byDate[okDate(f.data)]=byDate[okDate(f.data)]||[]).push(f) });
+  for(const date in byDate){ const d=JSON.parse(JSON.stringify(dietOf(date))); d.log=d.log||[]; d.date=date;
+    byDate[date].forEach((f,i)=>{ d.log.push({id:"u"+Date.now()+i,hora:"arquivo",texto:f.descricao||"Refeição do arquivo",proteina:Math.round(+f.proteina||0),kcal:Math.round(+f.kcal||0),carbo:f.carbo!=null?Math.round(+f.carbo):null,gordura:f.gordura!=null?Math.round(+f.gordura):null,itens:[],fonte:"arquivo"}); nf++ });
+    saveDiet(date,d) }
+  UP={busy:false,res:null,name:"",err:""};
+  toast("Adicionado ao plano ✓ "+[nb?`${nb} bioimpedância`:"",nt?`${nt} treino${nt>1?"s":""}`:"",nf?`${nf} refeiç${nf>1?"ões":"ão"}`:""].filter(Boolean).join(" · "));
+  render(true);
+};
 
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
