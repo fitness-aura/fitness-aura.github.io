@@ -1199,10 +1199,13 @@ function instSteps(t){
 function instRender(){
   const h=document.getElementById("instHelp"); const t=instTab;
   const tabs=t==="app"?"":`<div class="ihtabs">${[["chrome","Android · Chrome"],["safari","iPhone · Safari"]].map(([k,l])=>`<button class="${(t===k||(k==="safari"&&t==="chromeios"))?"on":""}" onclick="instTab='${k}';instRender()">${l}</button>`).join("")}</div>`;
-  h.innerHTML=`<div class="ihb"><h2>Instalar a Aura</h2><div class="sub">${t==="app"?"Para instalar, o link precisa estar aberto no navegador do celular.":"Leva 10 segundos. Depois é só abrir pelo ícone."}</div>${deferredInstall&&t!=="app"?`<button class="big" style="margin:0 0 12px" onclick="instClose();installAura()">Instalar agora</button><div class="sub" style="text-align:center;margin-bottom:10px">ou siga os passos:</div>`:""}${tabs}${instSteps(t)}<button class="big" onclick="instClose()">Entendi</button></div>`;
+  h.innerHTML=`<div class="ihb"><h2>Instalar a Aura</h2><div class="sub">${t==="app"?"Para instalar, o link precisa estar aberto no navegador do celular.":"Leva 10 segundos. Depois é só abrir pelo ícone."}</div>${tabs}${instSteps(t)}<button class="big" onclick="instClose()">Entendi</button></div>`;
   h.style.display="flex";
 }
 window.instOpen=()=>{ instTab=inApp()?"app":isIOS()?(isSafariIOS()?"safari":"chromeios"):"chrome"; instRender() };
+function instQuick(){ const h=document.getElementById("instHelp");
+  h.innerHTML=`<div class="ihb" style="text-align:center"><div class="logo" style="padding:6px 0 4px"><div class="ring"><i></i></div><div class="w" style="font-size:32px">AURA</div></div><button class="big" onclick="instClose();installAura()">Instalar a Aura</button><button class="glink" onclick="instClose()">Agora não</button></div>`;
+  h.style.display="flex" }
 window.instClose=()=>{ document.getElementById("instHelp").style.display="none" };
 /* ===================== BASE CIENTÍFICA (link no fim de Treino e Dieta) ===================== */
 const BASE={
@@ -1229,7 +1232,7 @@ window.baseOpen=k=>{ const B=BASE[k]; const h=document.getElementById("instHelp"
   h.style.display="flex" };
 
 // Link de convite: fitness-aura.github.io/?instalar abre o passo a passo de instalação na hora
-if(/[?&#]instalar/.test(location.href)){ window.addEventListener("load",()=>setTimeout(()=>{ if(!isStandalone()) instOpen() },1500)) }
+if(/[?&#]instalar/.test(location.href)){ window.addEventListener("load",async()=>{ if(isStandalone()) return; if(!isIOS()&&!inApp()) await waitPrompt(4000); if(deferredInstall) instQuick(); else instOpen() }) }
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
 function shift(n){const d=fromIso(sel);d.setDate(d.getDate()+n);sel=iso(d);openEx=null;for(const k in draft)delete draft[k];render()}
@@ -1238,7 +1241,8 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 let deferredInstall=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); deferredInstall=e; render()});
 window.addEventListener("appinstalled",()=>{deferredInstall=null; toast("Aura instalada ✓"); render()});
-window.installAura=async()=>{ if(!deferredInstall){ instOpen(); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
+const waitPrompt=ms=>new Promise(ok=>{ if(deferredInstall) return ok(true); const t0=Date.now(); const iv=setInterval(()=>{ if(deferredInstall||Date.now()-t0>ms){ clearInterval(iv); ok(!!deferredInstall) } },100) });
+window.installAura=async()=>{ if(!deferredInstall&&!isIOS()&&!inApp()) await waitPrompt(2500); if(!deferredInstall){ instOpen(true); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
 let isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone}catch(e){return false}};
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})) }
 /* ===================== CALENDÁRIO (toque na data) ===================== */
