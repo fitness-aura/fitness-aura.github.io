@@ -650,6 +650,7 @@ function renderHome(){
   const tile=(t,n,d)=>`<button class="tile" onclick="go('${t}')"><span class="ic">${ICONS[t]}</span><span><div class="tn">${n}</div><div class="td">${d}</div></span></button>`;
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
   $("#view").innerHTML=inst+`<div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>
+  ${profileCard()}
   <div class="todaycard"><div class="kick">${greet}${PROFILE&&PROFILE.answers&&PROFILE.answers.nome?", "+esc(PROFILE.answers.nome.split(" ")[0]):""}</div>
     <div style="font-size:20px;font-weight:800;margin-top:6px">${info.inPlan?`Dia ${info.day} de 30 · `:""}${sess}</div>
     <div class="sub">${esc(sessD)}${info.inPlan?` · ${PHASES[info.phase].n}`:""}</div>
@@ -667,8 +668,7 @@ function renderHome(){
   ${info.note?`<div class="hint">${esc(info.note)}</div>`:""}
   <div class="prof" style="background:linear-gradient(135deg,#a8792b,#8a611d);border:0;color:#fff"><div class="kick" style="color:#f3e2bb">Planos Aura</div><div style="font-size:19px;font-weight:800;margin:6px 0 4px">Assine e leve a Aura completa</div>
     <div style="font-size:13.5px;color:#f6ead0">Essencial a partir de ${brl(299/12)} por mês no anual. Pro com nutricionista e personal.</div>
-    <button class="big" style="background:#fff;color:#8a611d" onclick="go('planos')">Ver planos</button></div>
-  ${profileCard()}`;
+    <button class="big" style="background:#fff;color:#8a611d" onclick="go('planos')">Ver planos</button></div>`;
 }
 
 /* ===================== ESPORTES ===================== */
@@ -775,7 +775,7 @@ function profileCard(){
     <button class="big" onclick="startQuiz()">Começar questionário</button></div>`;
   return `<div class="prof"><div class="kick">Seu perfil</div><div style="font-size:18px;font-weight:800;margin:6px 0 2px">${esc(p.objetivo||"")} · ${esc(p.prazo||"")}</div>
     <div>${(p.foco||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}${(p.restricoes||[]).filter(x=>x!=="Nenhuma").map(x=>`<span class="chip" style="background:#fdecec;color:#7a1f1f">${esc(x)}</span>`).join("")}</div>
-    <div class="row" style="margin-top:12px"><button class="ghost" style="flex:1" onclick="startQuiz(true)">Refazer</button><button class="big" style="flex:2;margin:0;height:46px" onclick="go('perfil')">${PROFILE.plan?"Ver meu plano":"Gerar meu plano"}</button></div></div>`;
+    <button class="big" style="margin:12px 0 0;height:46px" onclick="go('perfil')">${PROFILE.plan?"Ver meu plano":"Gerar meu plano"}</button><button class="ghost" style="width:100%;margin-top:8px" onclick="startQuiz(true)">Atualização do Questionário</button></div>`;
 }
 window.startQuiz=(edit)=>{ qAns=edit&&PROFILE?JSON.parse(JSON.stringify(PROFILE.answers)):{}; qStep=0; tab="perfil"; quizOpen=true; window.scrollTo(0,0); render(true) };
 let quizOpen=false, planBusy=false;
