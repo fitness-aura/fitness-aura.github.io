@@ -207,9 +207,44 @@ details.card[open] summary::after{content:"−"}
 .plan li:before{content:"✓";position:absolute;left:2px;color:var(--gold);font-weight:800}
 .plan li.no{color:var(--mut)}.plan li.no:before{content:"–";color:var(--mut)}
 .mac b{display:block;font-size:16px}.mac span{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.navd .today{display:flex;align-items:center;gap:6px}
+#cal{display:none;position:fixed;inset:0;z-index:60;background:rgba(29,36,51,.25)}
+.calbox{position:absolute;top:58px;left:50%;transform:translateX(-50%);width:min(340px,92vw);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 18px 40px rgba(80,60,20,.22)}
+.calh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.calh b{font-size:16px}
+.calh button{width:38px;height:38px;border-radius:10px;background:var(--card2);color:var(--gold2);font-size:20px}
+.calw,.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.calw span{font-size:11px;font-weight:700;color:var(--mut);padding:4px 0}
+.calg button{position:relative;height:40px;border-radius:10px;background:none;color:var(--ink);font-weight:600;font-size:14px}
+.calg button.pl{background:rgba(201,161,74,.12)}
+.calg button.tod{box-shadow:inset 0 0 0 2px var(--gold)}
+.calg button.sel{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff}
+.calg button i{position:absolute;bottom:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--ok)}
+.calf{display:flex;gap:14px;justify-content:center;font-size:11px;color:var(--mut);margin-top:10px}
+.calf .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lg.pl{background:rgba(201,161,74,.3)}.lg.dt{background:var(--ok);border-radius:50%}
+#gate{display:none;position:fixed;inset:0;z-index:100;background:radial-gradient(120% 70% at 50% 0%,#fffaf0,var(--bg));overflow-y:auto}
+.gin{max-width:420px;margin:0 auto;padding:46px 20px 40px}
+.glogo{text-align:center;margin-bottom:24px}.gring{width:46px;height:46px;margin:0 auto 18px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 24px rgba(201,161,74,.55)}
+.gname{font-size:34px;font-weight:800;letter-spacing:.3em;background:linear-gradient(90deg,var(--gold),#d4a64a,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent;padding-left:.3em}
+.gtag{font-size:10px;letter-spacing:.3em;color:var(--mut);margin-top:8px}
+.gcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(80,60,20,.08)}
+.gcard h2{margin:0 0 6px;font-size:22px}.gcard p{margin:0 0 14px;color:var(--mut);line-height:1.45}
+.gcard input{margin-bottom:10px}
+.gtabs{display:flex;background:var(--card2);border-radius:12px;padding:4px;margin-bottom:14px}
+.gtabs button{flex:1;height:40px;border-radius:9px;background:none;color:var(--mut);font-weight:700}
+.gtabs button.on{background:var(--card);color:var(--gold2);box-shadow:0 1px 3px rgba(80,60,20,.12)}
+.glink{display:block;width:100%;background:none;color:var(--gold2);font-weight:700;margin-top:12px;height:36px}
+.gsmall{font-size:12px;color:var(--mut);text-align:center;margin-top:12px;line-height:1.4}.gsmall a{color:var(--gold2);font-weight:700}
+.gmsg{background:rgba(201,161,74,.12);border:1px solid rgba(201,161,74,.3);color:var(--gold2);border-radius:12px;padding:10px 12px;font-size:13px;margin:4px 0 4px;line-height:1.4}
+.ggrp{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin:14px 0 8px}
+.gopt{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;color:var(--ink)}
+.gopt.hl{border:2px solid var(--gold);background:#fffaf0}.gopt b{display:block;font-size:15px}.gopt span{font-size:12px;color:var(--mut)}.gopt em{font-style:normal;font-weight:800;color:var(--gold2);font-size:16px;white-space:nowrap}
+.gspin{width:36px;height:36px;margin:10px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--gold);animation:gsp 1s linear infinite}@keyframes gsp{to{transform:rotate(360deg)}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<div id="gate"></div>
+<div id="cal"></div>
 <div class="toast" id="toast"></div>
 <div class="wrap">
   <div class="top">
@@ -365,11 +400,11 @@ let SETS=[]; let DAYS={}; let DIET={}; let PROFILE=null; let SPORTS={items:[]}; 
 const draft={}; // por exercício: {w,r,rir}
 const LS="treino30_v1";
 function lsLoad(){try{const j=JSON.parse(localStorage.getItem(LS)||"{}");SETS=j.sets||[];DAYS=j.days||{};DIET=j.diet||{};PROFILE=j.profile||null;SPORTS=j.sports||{items:[]}}catch(e){}}
-function lsSave(){try{localStorage.setItem(LS,JSON.stringify({sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS}))}catch(e){}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify({sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS}))}catch(e){} try{cloudPush()}catch(e){}}
 
 async function initDb(){
   try{ db = window.claude && claude.use ? await claude.use("db") : null }catch(e){db=null}
-  if(!db){ mode="local"; lsLoad(); try{ if(!localStorage.getItem("aura_bn")){ showBanner("Versão de teste: seus registros ficam salvos neste celular."); localStorage.setItem("aura_bn","1") } }catch(e){} render(); return }
+  if(!db){ mode="local"; lsLoad(); try{ if(!localStorage.getItem("aura_bn")){ 0; localStorage.setItem("aura_bn","1") } }catch(e){} render(); return }
   mode="db"; let got=0;
   const to=setTimeout(()=>{ if(got<2) showBanner("Não consegui falar com o banco de dados ainda. Seus registros aparecem assim que a conexão voltar.") },10000);
   const done=()=>{ if(++got===2){clearTimeout(to); hideBanner()} };
@@ -466,7 +501,7 @@ function suggestion(key,rmin,rmax,last){
 function render(force){
   const ae=document.activeElement; if(!force&&ae&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA"||ae.tagName==="SELECT")&&document.getElementById("view").contains(ae)) return;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
-  $("#todayB").textContent = sel===iso(new Date())?"Hoje":br(sel);
+  $("#todayB").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="pointer-events:none"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span style="pointer-events:none">${sel===iso(new Date())?"Hoje":DOW[fromIso(sel).getDay()].slice(0,3)+" "+br(sel)}</span>`;
   if(tab==="planos") renderPlanos(); else if(tab==="home") renderHome(); else if(tab==="perfil") renderPerfil(); else if(tab==="esportes") renderEsportes(); else if(tab==="treino") renderTreino(); else if(tab==="dieta") renderDieta(); else if(tab==="dia") renderDia(); else renderEvo();
 }
 function head(info){
@@ -559,13 +594,14 @@ const PLANS=[
 let billing="a";
 const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 function renderPlanos(){
+  const acc=(typeof accountCard==="function")?accountCard():"";
   const cards=PLANS.map(p=>{ const an=billing==="a"; const price=an?p.a:p.m; const eq=p.a/12; const save=Math.round((1-p.a/(p.m*12))*100);
     return `<div class="plan ${p.hl?"hl":""}">${p.hl?`<span class="badge">${p.hl}</span>`:""}<div class="pn">${p.n}</div><div class="pd">${p.d}</div>
       <div class="pp">${brl(price)}<small>${an?" /ano":" /mês"}</small></div>
       <div class="pe">${an?`equivale a ${brl(eq)} por mês · economize ${save}%`:`ou ${brl(p.a)} no plano anual`}</div>
       <ul>${p.f.map(x=>`<li>${esc(x)}</li>`).join("")}${p.x.map(x=>`<li class="no">${esc(x)}</li>`).join("")}</ul>
       <button class="big" onclick="buy('${p.k}_${billing}')">${an?"Assinar plano anual":"Assinar plano mensal"}</button></div>` }).join("");
-  $("#view").innerHTML=`<div class="hero"><div class="kick">Planos Aura</div><h1>Escolha seu plano</h1><div class="sub">Cancele quando quiser. 7 dias de garantia: se não gostar, devolvemos 100%.</div></div>
+  $("#view").innerHTML=`${acc}<div class="hero"><div class="kick">Planos Aura</div><h1>Escolha seu plano</h1><div class="sub">Cancele quando quiser. 7 dias de garantia: se não gostar, devolvemos 100%.</div></div>
     <div class="bill"><button class="${billing==="m"?"on":""}" onclick="billing='m';render(true)">Mensal</button><button class="${billing==="a"?"on":""}" onclick="billing='a';render(true)">Anual<span class="off">até -38%</span></button></div>
     ${cards}
     <div class="plan" style="border-style:dashed"><div class="pn">Desafio Aura 30 dias</div><div class="pd">Pagamento único, sem renovação automática</div>
@@ -578,7 +614,7 @@ function renderPlanos(){
       <div class="sub" style="color:var(--ink);margin-top:10px"><b>Posso trocar de plano?</b><br>Sim. Ao subir para o Pro, o valor já pago é descontado.</div>
       <div class="sub" style="color:var(--ink);margin-top:10px"><b>E a garantia?</b><br>Nos primeiros 7 dias, se não gostar, devolvemos 100% do valor.</div></div>`;
 }
-window.buy=k=>{ const u=CHECKOUT[k]; if(u){ location.href=u; return } toast("Pagamento em configuração. Em breve!") };
+window.buy=k=>{ if(typeof gBuy==='function'&&sb&&USER){ renderPay(); gBuy(k); return } const u=CHECKOUT[k]; if(u){ location.href=u; return } toast("Pagamento em configuração. Em breve!") };
 
 /* ===================== METAS ===================== */
 function goalsCard(ds){
@@ -1070,7 +1106,7 @@ window.copyAll=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
 function shift(n){const d=fromIso(sel);d.setDate(d.getDate()+n);sel=iso(d);openEx=null;for(const k in draft)delete draft[k];render()}
-$("#prevD").onclick=()=>shift(-1); $("#nextD").onclick=()=>shift(1); $("#todayB").onclick=()=>{sel=iso(new Date());openEx=null;render()};
+$("#prevD").onclick=()=>shift(-1); $("#nextD").onclick=()=>shift(1); $("#todayB").onclick=e=>{e.stopPropagation(); $("#cal").style.display==="block"?calClose():calOpen()};
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ if(tread.on||rest.iv) keepAwake() } });
 let deferredInstall=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); deferredInstall=e; render()});
@@ -1078,7 +1114,166 @@ window.addEventListener("appinstalled",()=>{deferredInstall=null; toast("Aura in
 window.installAura=async()=>{ if(!deferredInstall){ toast("Use o menu ⋮ do Chrome e toque em Instalar app",true); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
 let isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone}catch(e){return false}};
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})) }
-render(); initDb();
+/* ===================== CALENDÁRIO (toque na data) ===================== */
+let calM=null; // primeiro dia do mês exibido
+const MES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+function calOpen(){ const d=fromIso(sel); calM=new Date(d.getFullYear(),d.getMonth(),1); calRender(); $("#cal").style.display="block" }
+function calClose(){ $("#cal").style.display="none" }
+function calRender(){
+  const y=calM.getFullYear(), m=calM.getMonth(); const first=new Date(y,m,1).getDay(); const n=new Date(y,m+1,0).getDate();
+  const today=iso(new Date()); const logged=new Set(SETS.map(s=>s.date)); Object.keys(DAYS||{}).forEach(k=>logged.add(k));
+  let cells=""; for(let i=0;i<first;i++) cells+=`<span></span>`;
+  for(let d=1;d<=n;d++){ const k=iso(new Date(y,m,d)); let inPlan=false; try{ inPlan=dayInfo(k).inPlan }catch(e){}
+    cells+=`<button class="${k===sel?"sel":""} ${k===today?"tod":""} ${inPlan?"pl":""}" onclick="calPick('${k}')">${d}${logged.has(k)?"<i></i>":""}</button>` }
+  $("#cal").innerHTML=`<div class="calbox"><div class="calh"><button onclick="calNav(-1)" aria-label="Mês anterior">‹</button><b>${MES[m]} ${y}</b><button onclick="calNav(1)" aria-label="Próximo mês">›</button></div>
+    <div class="calw">${["D","S","T","Q","Q","S","S"].map(x=>`<span>${x}</span>`).join("")}</div><div class="calg">${cells}</div>
+    <div class="calf"><span><i class="lg pl"></i>Plano 30 dias</span><span><i class="lg dt"></i>Com registro</span></div>
+    <button class="big" style="margin-top:10px;height:48px" onclick="calPick('${today}')">Ir para hoje</button></div>`;
+}
+window.calNav=n=>{ calM=new Date(calM.getFullYear(),calM.getMonth()+n,1); calRender() };
+window.calPick=k=>{ sel=k; openEx=null; for(const x in draft) delete draft[x]; calClose(); render() };
+document.addEventListener("click",e=>{ const c=$("#cal"); if(c&&c.style.display==="block"&&!e.target.closest(".calbox")&&e.target.id!=="todayB") calClose() });
+
+/* ===================== CONTA / ACESSO (login + assinatura) ===================== */
+const SB_URL="https://enhifvedsccbkczaaohn.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuaGlmdmVkc2NjYmtjemFhb2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzA0NDYsImV4cCI6MjEwOTgwNjQ0Nn0.VhC6b881jBsLtETbuitdU5JUOkgUP8wSZzmf6SoAMbo";
+let sb=null, USER=null, SUB=null, gateMode="login", gateBusy=false, gateMsg="", pushT=null, cloudReady=false;
+const PLAN_NAME={essencial:"Aura Essencial",pro:"Aura Pro"};
+const fmtD=s=>{try{return new Date(s).toLocaleDateString("pt-BR")}catch(e){return ""}};
+const subActive=s=>!!(s&&s.status==="active"&&new Date(s.expires_at)>new Date());
+const G=()=>document.getElementById("gate");
+function gateShow(html){ const g=G(); g.innerHTML=`<div class="gin"><div class="glogo"><div class="gring"></div><div class="gname">A U R A</div><div class="gtag">CORPO · MENTE · DISCIPLINA</div></div>${html}</div>`; g.style.display="block"; document.body.style.overflow="hidden" }
+function gateHide(){ const g=G(); g.style.display="none"; g.innerHTML=""; document.body.style.overflow="" }
+const gMsg=()=>gateMsg?`<div class="gmsg">${esc(gateMsg)}</div>`:"";
+
+async function boot(){
+  if(window.claude&&claude.use){ initDb(); return }           // versão dentro do Claude: sem trava
+  try{ sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}) }catch(e){ sb=null }
+  if(!sb){ return offlineEnter() }
+  sb.auth.onAuthStateChange((ev)=>{ if(ev==="PASSWORD_RECOVERY"){ gateMode="nova"; gateMsg=""; renderAuth() } });
+  let session=null; try{ session=(await sb.auth.getSession()).data.session }catch(e){}
+  if(location.hash.includes("type=recovery")){ gateMode="nova"; return renderAuth() }
+  if(!session){ return renderAuth() }
+  USER=session.user; await checkAccess();
+}
+function offlineEnter(){ // sem internet: libera se a assinatura conhecida ainda vale
+  let c=null; try{ c=JSON.parse(localStorage.getItem("aura_sub")||"null") }catch(e){}
+  if(subActive(c)){ SUB=c; enterApp(false); return }
+  gateShow(`<div class="gcard"><h2>Sem conexão</h2><p>Conecte-se à internet para entrar na sua conta.</p><button class="big" onclick="location.reload()">Tentar de novo</button></div>`);
+}
+
+/* ---------- login / cadastro ---------- */
+function renderAuth(){
+  if(gateMode==="nova"){ gateShow(`<div class="gcard"><h2>Nova senha</h2><p>Escolha uma nova senha para sua conta.</p>
+    <input id="gP" type="password" placeholder="Nova senha (mín. 6 caracteres)" autocomplete="new-password">${gMsg()}
+    <button class="big" onclick="gNewPass()">Salvar senha</button></div>`); return }
+  if(gateMode==="esqueci"){ gateShow(`<div class="gcard"><h2>Recuperar senha</h2><p>Enviamos um link para o seu e-mail.</p>
+    <input id="gE" type="email" placeholder="Seu e-mail" autocomplete="email">${gMsg()}
+    <button class="big" onclick="gForgot()">Enviar link</button><button class="glink" onclick="gSet('login')">Voltar</button></div>`); return }
+  const cad=gateMode==="cadastro";
+  gateShow(`<div class="gcard"><div class="gtabs"><button class="${!cad?"on":""}" onclick="gSet('login')">Entrar</button><button class="${cad?"on":""}" onclick="gSet('cadastro')">Criar conta</button></div>
+    ${cad?`<input id="gN" placeholder="Seu nome" autocomplete="name">`:""}
+    <input id="gE" type="email" placeholder="E-mail" autocomplete="email" inputmode="email">
+    <input id="gP" type="password" placeholder="${cad?"Crie uma senha (mín. 6 caracteres)":"Senha"}" autocomplete="${cad?"new-password":"current-password"}">
+    ${gMsg()}<button class="big" id="gGo" onclick="${cad?"gSignup()":"gLogin()"}">${gateBusy?"Aguarde…":cad?"Criar conta":"Entrar"}</button>
+    ${cad?`<div class="gsmall">Ao criar a conta você concorda com os termos de uso e a política de privacidade da Aura.</div>`:`<button class="glink" onclick="gSet('esqueci')">Esqueci minha senha</button>`}</div>`);
+  const p=document.getElementById("gP"); if(p) p.onkeydown=e=>{ if(e.key==="Enter") (cad?gSignup:gLogin)() };
+}
+window.gSet=m=>{ gateMode=m; gateMsg=""; renderAuth() };
+const val=id=>(document.getElementById(id)?.value||"").trim();
+function authErr(e){ const m=(e&&e.message||"").toLowerCase();
+  if(m.includes("invalid login")) return "E-mail ou senha incorretos.";
+  if(m.includes("already registered")||m.includes("already been registered")) return "Este e-mail já tem conta. Toque em Entrar.";
+  if(m.includes("password")&&m.includes("6")) return "A senha precisa ter pelo menos 6 caracteres.";
+  if(m.includes("email not confirmed")) return "Confirme seu e-mail pelo link que enviamos e depois entre.";
+  if(m.includes("rate")) return "Muitas tentativas. Espere um minuto e tente de novo.";
+  if(m.includes("fetch")||m.includes("network")) return "Sem conexão. Verifique a internet.";
+  return "Não deu certo: "+(e&&e.message||"erro"); }
+window.gLogin=async()=>{ if(gateBusy) return; const email=val("gE"), password=val("gP");
+  if(!email||!password){ gateMsg="Preencha e-mail e senha."; return renderAuth() }
+  gateBusy=true; renderAuth(); document.getElementById("gE").value=email;
+  const {data,error}=await sb.auth.signInWithPassword({email,password}); gateBusy=false;
+  if(error){ gateMsg=authErr(error); renderAuth(); document.getElementById("gE").value=email; return }
+  USER=data.user; gateMsg=""; checkAccess() };
+window.gSignup=async()=>{ if(gateBusy) return; const name=val("gN"), email=val("gE"), password=val("gP");
+  if(!email||password.length<6){ gateMsg="Informe o e-mail e uma senha com 6 caracteres ou mais."; return renderAuth() }
+  gateBusy=true; renderAuth();
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{name},emailRedirectTo:location.origin+location.pathname}}); gateBusy=false;
+  if(error){ gateMsg=authErr(error); return renderAuth() }
+  if(!data.session){ gateMode="login"; gateMsg="Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre."; return renderAuth() }
+  USER=data.user; gateMsg=""; checkAccess() };
+window.gForgot=async()=>{ const email=val("gE"); if(!email){ gateMsg="Informe seu e-mail."; return renderAuth() }
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  gateMsg=error?authErr(error):"Pronto! Abra o link que enviamos para "+email+"."; renderAuth() };
+window.gNewPass=async()=>{ const password=val("gP"); if(password.length<6){ gateMsg="A senha precisa ter pelo menos 6 caracteres."; return renderAuth() }
+  const {data,error}=await sb.auth.updateUser({password}); if(error){ gateMsg=authErr(error); return renderAuth() }
+  history.replaceState(null,"",location.pathname); USER=data.user; gateMode="login"; gateMsg=""; toast("Senha atualizada ✓"); checkAccess() };
+window.gLogout=async()=>{ try{ await sb.auth.signOut() }catch(e){} try{ localStorage.removeItem(LS); localStorage.removeItem("aura_sub") }catch(e){}
+  USER=null; SUB=null; SETS=[]; DAYS={}; DIET={}; PROFILE=null; SPORTS={items:[]}; cloudReady=false; gateMode="login"; gateMsg=""; renderAuth() };
+
+/* ---------- assinatura ---------- */
+async function fetchSub(){ const {data,error}=await sb.from("subscriptions").select("*").eq("user_id",USER.id).maybeSingle(); if(error) throw error; return data }
+async function checkAccess(){
+  const q=new URLSearchParams(location.search); const pago=q.get("pago");
+  try{ SUB=await fetchSub() }catch(e){ let c=null; try{ c=JSON.parse(localStorage.getItem("aura_sub")||"null") }catch(_){} if(subActive(c)){ SUB=c; return enterApp(false) } gateMsg=authErr(e); return renderPay() }
+  if(subActive(SUB)){ try{ localStorage.setItem("aura_sub",JSON.stringify(SUB)) }catch(e){} if(pago) history.replaceState(null,"",location.pathname); return enterApp(true) }
+  if(pago==="ok"||pago==="pendente") return waitPayment(pago);
+  if(pago==="erro") gateMsg="O pagamento não foi concluído. Você pode tentar de novo.";
+  renderPay();
+}
+function renderPay(){
+  const nm=USER?.user_metadata?.name; const exp=SUB&&!subActive(SUB);
+  const opt=(k,t,p,s,hl)=>`<button class="gopt ${hl?"hl":""}" onclick="gBuy('${k}')"><div><b>${t}</b><span>${s}</span></div><em>${brl(p)}</em></button>`;
+  gateShow(`<div class="gcard"><h2>${nm?"Olá, "+esc(nm.split(" ")[0])+"!":"Quase lá!"}</h2>
+    <p>${exp?"Seu plano venceu em "+fmtD(SUB.expires_at)+". Renove para continuar usando a Aura.":"Escolha seu plano para liberar a Aura. Pix ou cartão, liberação automática."}</p>${gMsg()}
+    <div class="ggrp">Aura Essencial · app completo</div>
+    ${opt("essencial_a","Anual","299","equivale a R$ 24,92/mês · até 12x",true)}
+    ${opt("essencial_m","Mensal","39.90","renove quando quiser")}
+    ${opt("desafio","Desafio 30 dias","127","pagamento único, programa de 30 dias")}
+    <div class="ggrp">Aura Pro · app + nutricionista e personal</div>
+    ${opt("pro_a","Anual","1490","equivale a R$ 124,17/mês · até 12x")}
+    ${opt("pro_m","Mensal","179","acompanhamento pelo WhatsApp")}
+    <div class="gsmall">7 dias de garantia: se não gostar, devolvemos 100%. Pagamento seguro pelo Mercado Pago.</div>
+    <button class="glink" onclick="gRecheck()">Já paguei, verificar</button>
+    <div class="gsmall">Conectado como ${esc(USER?.email||"")} · <a href="#" onclick="gLogout();return false">Sair</a></div></div>`);
+  document.querySelectorAll(".gopt em").forEach(e=>{ e.textContent=brl(Number(e.textContent)) });
+}
+window.gBuy=async k=>{ if(gateBusy) return; gateBusy=true; gateMsg="Abrindo o pagamento…"; renderPay();
+  try{ const {data,error}=await sb.functions.invoke("checkout",{body:{plan:k}}); gateBusy=false;
+    if(error||!data?.url){ let d=null; try{ d=await error?.context?.json() }catch(e){} gateMsg=d?.error==="pagamento_nao_configurado"?"Pagamento em configuração. Em breve!":"Não consegui abrir o pagamento. Tente de novo."; return renderPay() }
+    location.href=data.url }catch(e){ gateBusy=false; gateMsg="Sem conexão. Tente de novo."; renderPay() } };
+window.gRecheck=()=>{ gateMsg=""; waitPayment("check") };
+async function waitPayment(kind){
+  gateShow(`<div class="gcard"><h2>Confirmando pagamento</h2><p>${kind==="pendente"?"Seu pagamento está em processamento. Se for Pix, conclua no app do banco.":"Estamos confirmando com o Mercado Pago. Leva poucos segundos."}</p><div class="gspin"></div></div>`);
+  for(let i=0;i<(kind==="check"?4:40);i++){ try{ SUB=await fetchSub() }catch(e){}
+    if(subActive(SUB)){ try{ localStorage.setItem("aura_sub",JSON.stringify(SUB)) }catch(e){} history.replaceState(null,"",location.pathname); toast("Plano ativado ✓"); return enterApp(true) }
+    await new Promise(r=>setTimeout(r,3000)) }
+  history.replaceState(null,"",location.pathname);
+  gateMsg=kind==="check"?"Ainda não encontramos seu pagamento. Se pagou agora, aguarde 1 minuto e toque em verificar de novo.":"Ainda não recebemos a confirmação. Se pagou por Pix, ela chega em instantes: toque em \"Já paguei, verificar\".";
+  renderPay();
+}
+
+/* ---------- entrar no app + sincronizar dados ---------- */
+async function enterApp(online){
+  gateHide(); mode="local"; lsLoad(); render();
+  if(!online||!sb||!USER) return;
+  try{ const {data}=await sb.from("user_data").select("data,updated_at").eq("user_id",USER.id).maybeSingle();
+    if(data&&data.data&&Object.keys(data.data).length){ const j=data.data; SETS=j.sets||[];DAYS=j.days||{};DIET=j.diet||{};PROFILE=j.profile||null;SPORTS=j.sports||{items:[]}; try{ localStorage.setItem(LS,JSON.stringify(j)) }catch(e){} render(true) }
+    cloudReady=true; if(!data) cloudPush(true);
+  }catch(e){ cloudReady=true }
+}
+function cloudPush(now){ if(!sb||!USER||!cloudReady) return; clearTimeout(pushT);
+  pushT=setTimeout(async()=>{ try{ await sb.from("user_data").upsert({user_id:USER.id,data:{sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS},updated_at:new Date().toISOString()}) }catch(e){} }, now?0:1500) }
+function accountCard(){
+  if(!USER) return "";
+  const a=subActive(SUB);
+  return `<div class="card"><div class="kick">Sua conta</div><div style="font-weight:700;margin-top:6px">${esc(USER.email)}</div>
+    <div class="sub" style="margin-top:4px">${a?`${PLAN_NAME[SUB.plan]||"Aura"} · válido até ${fmtD(SUB.expires_at)}`:"Sem plano ativo"}</div>
+    <button class="ghost" style="width:100%;margin-top:10px" onclick="gLogout()">Sair da conta</button></div>`;
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") cloudPush(true) });
+
+render(); boot();
 </script>
 </body>
 </html>
