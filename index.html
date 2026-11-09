@@ -1362,11 +1362,27 @@ async function waitPayment(kind){
 async function enterApp(online){
   gateHide(); mode="local"; lsLoad(); render();
   if(!online||!sb||!USER) return;
-  try{ const {data}=await sb.from("user_data").select("data,updated_at").eq("user_id",USER.id).maybeSingle();
-    if(data&&data.data&&Object.keys(data.data).length){ const j=data.data; SETS=j.sets||[];DAYS=j.days||{};DIET=j.diet||{};PROFILE=j.profile||null;SPORTS=j.sports||{items:[]}; try{ localStorage.setItem(LS,JSON.stringify(j)) }catch(e){} render(true) }
-    cloudReady=true; if(!data) cloudPush(true);
-  }catch(e){ cloudReady=true }
+  await pullMerge(true);
 }
+function mergeData(c,l){ // c = nuvem, l = este aparelho. Junta os dois sem perder registros.
+  const ids=new Set((c.sets||[]).map(x=>x.id)); const sets=[...(c.sets||[])]; (l.sets||[]).forEach(x=>{ if(!ids.has(x.id)) sets.push(x) });
+  const obj=(a,b)=>{ const o={...(b||{})}; Object.keys(a||{}).forEach(k=>{ const x=a[k], y=o[k]; o[k]=(y&&x&&(y.savedAt||y.updatedAt||"")>(x.savedAt||x.updatedAt||""))?y:x }); return o };
+  const pa=c.profile, pb=l.profile; const profile=(pa&&pb)?(((pb.updatedAt||"")>(pa.updatedAt||""))?pb:pa):(pa||pb||null);
+  const sports=((c.sports&&c.sports.items||[]).length)?c.sports:(l.sports||{items:[]});
+  return {sets,days:obj(c.days,l.days),diet:obj(c.diet,l.diet),profile,sports};
+}
+let lastPull=0;
+async function pullMerge(first){
+  if(!sb||!USER) return; lastPull=Date.now();
+  try{ const {data}=await sb.from("user_data").select("data").eq("user_id",USER.id).maybeSingle();
+    const local={sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS};
+    const j=data&&data.data?mergeData(data.data,local):local;
+    SETS=j.sets;DAYS=j.days;DIET=j.diet;PROFILE=j.profile;SPORTS=j.sports||{items:[]}; try{ localStorage.setItem(LS,JSON.stringify(j)) }catch(e){}
+    cloudReady=true; render(true);
+    if(!data||JSON.stringify(data.data)!==JSON.stringify(j)) cloudPush(true);
+  }catch(e){ if(first) cloudReady=false }
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&USER&&Date.now()-lastPull>20000) pullMerge(false) });
 function cloudPush(now){ if(!sb||!USER||!cloudReady) return; clearTimeout(pushT);
   pushT=setTimeout(async()=>{ try{ await sb.from("user_data").upsert({user_id:USER.id,data:{sets:SETS,days:DAYS,diet:DIET,profile:PROFILE,sports:SPORTS},updated_at:new Date().toISOString()}) }catch(e){} }, now?0:1500) }
 function accountCard(){
