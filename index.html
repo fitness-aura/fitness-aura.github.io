@@ -521,7 +521,7 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
   if(info.s==="TENNIS"){ const t=setsOn(sel).find(s=>s.ex==="tenis");
     v.innerHTML=`<div class="hero">${head(info)}<h1>Tênis no saibro</h1><div class="sub">10h às 12h. Café reforçado às 8h, eletrólitos na garrafa e isotônico ou gel no intervalo. Sem musculação hoje.</div></div>
     <div class="card"><h3>Registrar o tênis</h3>
@@ -529,7 +529,7 @@ function renderTreino(){
       `<div class="grid2"><div class="stepper"><label>Minutos</label><div class="st"><button onclick="adj('ten_m',-10)">−</button><input id="ten_m" inputmode="numeric" value="120"><button onclick="adj('ten_m',10)">+</button></div></div>
       <div class="stepper"><label>Esforço 1 a 10</label><div class="st"><button onclick="adj('ten_e',-1)">−</button><input id="ten_e" inputmode="numeric" value="7"><button onclick="adj('ten_e',1)">+</button></div></div></div>
       <button class="big" onclick="logTennis()">Registrar tênis</button>`}
-    </div>${uploadCard()}`; return }
+    </div>${uploadCard()}${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -550,7 +550,7 @@ function renderTreino(){
     <div class="hint n">Aquecimento (10 min): 7 min de esteira leve, mobilidade de quadril e ombro, 1 série de rotação externa e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
-    ${uploadCard()}`;
+    ${uploadCard()}${baseLink("treino")}`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
@@ -886,7 +886,7 @@ function renderDieta(){
     <div class="card"><h3>Água · meta ${P.agua} copos de 500 ml (${P.agua/2} L)</h3><div class="water">${Array.from({length:Math.max(P.agua,(d.agua||0))+1},(_,i)=>`<button class="${i<(d.agua||0)?"on":""}" onclick="setAgua(${i+1})">💧</button>`).join("")}</div>
       <div class="sub" style="margin-top:8px">${((d.agua||0)/2).toLocaleString("pt-BR")} L de ${P.agua/2} L</div></div>
     <details class="card"><summary>Tabela de trocas</summary><table style="margin-top:10px">${SWAPS.map(r=>`<tr><td style="width:34%;color:var(--gold2);font-weight:600">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table></details>
-    <details class="card"><summary>Regras e suplementos</summary><ul class="cues" style="margin-top:10px">${RULES.map(r=>`<li>${esc(r)}</li>`).join("")}<li>Creatina: 5 g todo dia, qualquer horário.</li><li>Whey: só para completar a proteína.</li><li>Eletrólitos no sábado de tênis.</li></ul></details>`;
+    <details class="card"><summary>Regras e suplementos</summary><ul class="cues" style="margin-top:10px">${RULES.map(r=>`<li>${esc(r)}</li>`).join("")}<li>Creatina: 5 g todo dia, qualquer horário.</li><li>Whey: só para completar a proteína.</li><li>Eletrólitos no sábado de tênis.</li></ul></details>${baseLink("dieta")}`;
 }
 function missCard(st){
   const falta=Math.max(0,165-st.prot);
@@ -1204,6 +1204,30 @@ function instRender(){
 }
 window.instOpen=()=>{ instTab=inApp()?"app":isIOS()?(isSafariIOS()?"safari":"chromeios"):"chrome"; instRender() };
 window.instClose=()=>{ document.getElementById("instHelp").style.display="none" };
+/* ===================== BASE CIENTÍFICA (link no fim de Treino e Dieta) ===================== */
+const BASE={
+ dieta:{t:"Base científica da dieta",items:[
+  ["Gasto calórico","Mifflin MD, St Jeor ST et al. American Journal of Clinical Nutrition, 1990","Calcula o gasto em repouso por peso, altura, idade e sexo; a meta do dia soma a atividade e aplica um déficit moderado."],
+  ["Proteína","Morton RW et al. British Journal of Sports Medicine, 2018 (meta-análise)","Meta de cerca de 1,6 a 2,0 g por kg de peso para preservar e ganhar massa muscular."],
+  ["Perder gordura e ganhar músculo","Barakat C et al. Strength and Conditioning Journal, 2020","Déficit moderado com proteína alta e treino de força, sem dieta agressiva."],
+  ["Sono","Nedeltcheva AV et al. Annals of Internal Medicine, 2010","Dormir pouco em dieta faz perder mais músculo e menos gordura."],
+  ["Creatina","Kreider RB et al. Posição da ISSN, Journal of the International Society of Sports Nutrition, 2017","Suplemento com maior evidência para força: 3 a 5 g por dia."],
+  ["Esportes","Herrmann SD et al. Compendium of Physical Activities, 2024","Gasto de cada esporte por MET × peso × horas; o app devolve 60% desse gasto à meta do dia, por segurança."]]},
+ treino:{t:"Base científica do treino",items:[
+  ["Volume por músculo","Schoenfeld BJ, Ogborn D, Krieger JW. Journal of Sports Sciences, 2017 (meta-análise)","10 a 20 séries por músculo por semana, com mais volume nos músculos prioritários."],
+  ["Intensidade (RIR)","Zourdos MC et al. Journal of Strength and Conditioning Research, 2016","Repetições na reserva controlam o esforço: RIR 3 na adaptação e 1 a 2 depois."],
+  ["Gordura localizada","Vispute SS et al. Journal of Strength and Conditioning Research, 2011","Abdominais não queimam a gordura da barriga localmente; o que funciona é déficit, cardio e treino geral."],
+  ["Esteira inclinada","Protocolo 12-3-30, estudo de 2024","12% de inclinação, cerca de 4,8 km/h, 30 min: cardio de baixo impacto para o gasto calórico."],
+  ["Gasto nos esportes","Herrmann SD et al. Compendium of Physical Activities, 2024","Referência internacional de gasto calórico por atividade (MET)."]]}
+};
+function baseLink(k){ return `<div style="text-align:center;margin:14px 0 6px"><a href="#" onclick="baseOpen('${k}');return false" style="font-size:12.5px;color:var(--gold2);font-weight:700;text-decoration:underline">Base de dados: estudos usados ${k==="dieta"?"na dieta":"no treino"}</a></div>` }
+window.baseOpen=k=>{ const B=BASE[k]; const h=document.getElementById("instHelp");
+  h.innerHTML=`<div class="ihb"><div class="kick">Base de dados</div><h2>${B.t}</h2><div class="sub">Estudos e diretrizes que embasam ${k==="dieta"?"as metas de calorias e de proteína":"o volume, a intensidade e o cardio"} da Aura.</div>
+   ${B.items.map(([a,r,x],i)=>`<div class="ihs"><div class="n">${i+1}</div><div><b>${a}</b><span>${x}<br><i style="color:var(--gold2)">${r}</i></span></div></div>`).join("")}
+   <div class="sub" style="font-size:12px;margin-top:10px">Conteúdo educativo. A Aura não substitui o acompanhamento de nutricionista (CRN) e de profissional de educação física (CREF).</div>
+   <button class="big" onclick="instClose()">Fechar</button></div>`;
+  h.style.display="flex" };
+
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
 function shift(n){const d=fromIso(sel);d.setDate(d.getDate()+n);sel=iso(d);openEx=null;for(const k in draft)delete draft[k];render()}
