@@ -415,7 +415,11 @@ Object.assign(EX,{
   superman:{n:"Superman no chão",img:null,m:"bw",c:["Deitado de bruços","Eleve braços e pernas juntos","Segure 2 s"]},
   tri_banco:{n:"Tríceps no banco ou cadeira",img:null,m:"bw",c:["Mãos na borda, dedos para frente","Desça até 90° no cotovelo","Ombros longe das orelhas"]},
   pike:{n:"Flexão pike (ombros)",img:null,m:"bw",c:["Quadril alto, corpo em V","Leve a cabeça em direção ao chão","Empurre de volta"]},
-  cardio_casa:{n:"Cardio em casa",img:null,m:"simple",c:["Polichinelo, corrida parada e escalador","30 s forte, 30 s leve"]}
+  cardio_casa:{n:"Cardio em casa",img:null,m:"simple",c:["Polichinelo, corrida parada e escalador","30 s forte, 30 s leve"]},
+  hip_thrust:{n:"Elevação pélvica com halter",img:null,m:"load",c:["Costas apoiadas no banco, halter no quadril","Suba até o tronco ficar reto","Aperte o glúteo 1 s em cima"]},
+  abducao:{n:"Abdução de quadril com elástico",img:null,m:"bw",c:["Elástico acima dos joelhos","Afaste os joelhos com controle","Sinta a lateral do glúteo"],unit:"cada lado"},
+  coice:{n:"Coice na polia",img:null,m:"load",c:["Tornozeleira na polia baixa","Leve a perna para trás sem arquear a lombar","Segure 1 s no fim"],unit:"cada perna"},
+  sup_maq:{n:"Supino máquina ou na polia",img:null,m:"load",c:["Pegada na linha do peito","Empurre sem travar os cotovelos","Volte devagar"]}
 });
 const DEF_ANS={sexo:"Masculino",corpo:{idade:"35",altura:"175",peso:"80"},objetivo:"Recomposição",prazo:"3 meses",foco:["Corpo todo por igual"],nivel:"Intermediário",dias:"4",tempo:"60 min",horario:"Manhã",local:"Academia completa",esporte:["Nenhum"],rotina:"Sentado a maior parte do dia",sono:"7 a 8 h",restricoes:["Nenhuma"],naogosta:"",refeicoes:"5",cozinha:"Cozinho em casa",lesoes:["Nenhuma"],suplementos:["Nenhum"]};
 let PLANSIG="", PLANINFO={hora:"", horaTxt:"", person:"", prot:150, rules:[], sportDays:{}};
@@ -438,11 +442,11 @@ function calcMacros(a){
 }
 
 /* ---------- treino ---------- */
-const GPOOL={peito:["supino_reto","sup_incl","crucifixo","crossover","squeeze","flexao","supino_neutro","pullover"],costas:["puxada","remada","superman"],ombro:["desenv","elev_lat","pike"],
-  biceps:["rosca_direta","martelo"],triceps:["triceps_corda","tri_testa","tri_banco"],quad:["goblet","bulgaro","stepup","passada_lat","agacho"],post:["stiff","ponte","bulgaro"],
+const GPOOL={peito:["supino_reto","sup_incl","crucifixo","crossover","sup_maq","squeeze","flexao","supino_neutro","pullover"],costas:["puxada","remada","superman"],ombro:["desenv","elev_lat","pike"],
+  biceps:["rosca_direta","martelo"],triceps:["triceps_corda","tri_testa","tri_banco"],quad:["goblet","bulgaro","stepup","passada_lat","agacho"],post:["hip_thrust","stiff","bulgaro","ponte","abducao","coice"],
   pant:["panturrilha"],core:["prancha","pallof","lenhador"],cond:["farmer"],saude:["rot_ext"]};
-const CABLE=new Set(["triceps_corda","crossover","puxada","pallof","lenhador"]);
-const DBELL=new Set(["supino_reto","sup_incl","crucifixo","squeeze","supino_neutro","pullover","remada","desenv","elev_lat","rosca_direta","martelo","tri_testa","goblet","stiff","farmer"]);
+const CABLE=new Set(["triceps_corda","crossover","puxada","pallof","lenhador","coice","sup_maq"]);
+const DBELL=new Set(["hip_thrust","supino_reto","sup_incl","crucifixo","squeeze","supino_neutro","pullover","remada","desenv","elev_lat","rosca_direta","martelo","tri_testa","goblet","stiff","farmer"]);
 const COMPOUND=new Set(["peito","costas","quad","post"]); const UPPER=new Set(["peito","costas","ombro","biceps","triceps"]), LOWER=new Set(["quad","post","pant","core"]);
 function exAllowed(k,a){
   const loc=a.local||""; const inj=a.lesoes||[];
@@ -451,7 +455,7 @@ function exAllowed(k,a){
   if(/Academia/.test(loc)&&["agacho","superman","tri_banco","pike"].includes(k)) return false;
   if(inj.includes("Ombro")&&["pullover","desenv","tri_testa","pike","crossover"].includes(k)) return false;
   if(inj.includes("Joelho")&&["bulgaro","passada_lat","goblet","agacho","stepup"].includes(k)) return false;
-  if(inj.includes("Lombar")&&["stiff","farmer","pullover","superman"].includes(k)) return false;
+  if(inj.includes("Lombar")&&["stiff","farmer","pullover","superman","coice"].includes(k)) return false;
   if(inj.includes("Punho ou cotovelo")&&["flexao","tri_testa","tri_banco","pike"].includes(k)) return false;
   if(inj.includes("Tornozelo")&&["passada_lat","panturrilha","stepup"].includes(k)) return false;
   return true;
@@ -475,20 +479,28 @@ function buildSessions(a){
   const reps=(g)=>{ const c=COMPOUND.has(g);
     if(obj==="Hipertrofia") return c?[8,12]:[10,15]; if(obj==="Performance esportiva") return c?[6,8]:[10,12];
     if(obj==="Recomposição") return c?[8,12]:[10,15]; return c?[10,15]:[12,15]; };
-  const letters="ABCDEFG"; const out={}; const order=[];
+  const letters="ABCDEFG"; const out={}; const order=[]; const rot={};
   tpl.forEach(([title,slots],si)=>{
     const L=slots[0]==="CARDIO"?"Q":letters[si]; let sl=slots.filter(s=>s!=="CARDIO");
     // foco: grupos prioritários entram primeiro e ganham espaço
     if(L!=="Q"){ const up=/Superiores|Peito|Costas|Empurrar|Puxar|Corpo/.test(title), lo=/Inferiores|Pernas|Corpo/.test(title);
-      foco.forEach(g=>{ const comp=COMPOUND.has(g); const i=sl.indexOf(g); const at=g==="core"?Math.min(maxEx-1,sl.length):comp?0:Math.min(2,sl.length);
-        if(i>=0){ if(comp){ sl.splice(i,1); sl.unshift(g) } else if(g==="core"&&i>=maxEx){ sl.splice(i,1); sl.splice(at,0,g) } }
-        else if((UPPER.has(g)&&up)||(LOWER.has(g)&&lo)) sl.splice(at,0,g) }) }
+      const fg=[...new Set(foco)]; const want=fg.length===1?3:2;
+      const crossG=new Set(); fg.forEach((g,gi)=>{ const fits=(UPPER.has(g)&&up)||(LOWER.has(g)&&lo); const cross=!fits&&["post","quad"].includes(g)&&up&&nd>=4; // glúteo/pernas também como finalizador nos dias de superiores
+        if(!fits&&!cross) return;
+        if(cross) crossG.add(g); sl=sl.filter(x=>x!==g); const iso=!COMPOUND.has(g);
+        const n=g==="core"?(fits?2:1):cross?1:iso?(fg.length===1?2:1):want;
+        sl.push(...Array(n).fill(g)) });
+      // ordem: foco composto, outros compostos, foco isolado, core do foco, outros isolados, core e condicionamento
+      const pr=g=>{ const f=fg.includes(g); if(crossG.has(g)) return 3.5; if(COMPOUND.has(g)) return f?0:1; if(g==="core") return f?2.5:4; if(g==="cond"||g==="saude") return 4; return f?2:3 };
+      sl=sl.map((g,i)=>[g,i]).sort((x,y)=>pr(x[0])-pr(y[0])||x[1]-y[1]).map(x=>x[0]);
+      // grupos não prioritários repetidos saem antes
+      if(fg.length){ const seen={}; const keep=sl.filter(x=>{ if(fg.includes(x)) return true; seen[x]=(seen[x]||0)+1; return seen[x]===1 }); if(keep.length>=maxEx) sl=keep } }
     const used=new Set(); const ex=[]; let n=0;
     const cardioMin=L==="Q"?20:(fatGoal?({"30 min":8,"45 min":12,"60 min":15,"75 min ou mais":20}[a.tempo]||15):0);
     if(L==="Q") ex.push([L+"1",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
     for(const g of sl){ if(ex.filter(e=>e[1]!=="esteira"&&e[1]!=="cardio_casa").length>=maxEx) break;
       const pool=(GPOOL[g]||[]).filter(k=>exAllowed(k,a)&&!used.has(k)); if(!pool.length) continue;
-      const k=pool[(si+n)%pool.length]; used.add(k); n++;
+      rot[g]=(rot[g]==null?(foco.includes(g)?0:si):rot[g]+1); const k=pool[rot[g]%pool.length]; used.add(k); n++;
       const E=EX[k]; const isF=foco.includes(g); const comp=COMPOUND.has(g);
       let sets=lvl==="Iniciante"?2:3; if(isF||(lvl==="Avançado"&&comp&&ex.length<2)) sets++; sets=Math.min(4,sets);
       let [r1,r2]=reps(g), rest=comp?(lvl==="Avançado"&&ex.length<2?120:90):60;
@@ -501,7 +513,11 @@ function buildSessions(a){
     }
     if(L!=="Q"&&cardioMin) ex.push(["E",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
     if(!home&&L!=="Q"&&!cardioMin) ex.push(["F","bike",1,8,8,0]);
-    out[L]={t:title,ex}; order.push(L);
+    const GN={peito:"Peito",costas:"Costas",ombro:"Ombros",biceps:"Braços",triceps:"Braços",quad:"Pernas",post:"Glúteos",pant:"Panturrilhas",core:"Core",cond:"Condicionamento"};
+    const KG={}; Object.entries(GPOOL).forEach(([g,ks])=>ks.forEach(k=>{ if(!KG[k]) KG[k]=g }));
+    const names=[...new Set(ex.map(e=>GN[KG[e[1]]]).filter(x=>x&&x!=="Core"&&x!=="Condicionamento"))].slice(0,3).map((x,i)=>i?x.toLowerCase():x);
+    const t2=L==="Q"?title:names.length>1?names.slice(0,-1).join(", ")+" e "+names[names.length-1]:(names[0]||title);
+    out[L]={t:t2,ex}; order.push(L);
   });
   return {sess:out,order};
 }
