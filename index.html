@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="theme-color" content="#f6f2ea">
+<meta name="color-scheme" content="only light">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f2ea;--card:#ffffff;--card2:#f3eee4;--line:#e6dfd1;--ink:#1d2433;--mut:#7a7f8c;--gold:#a8792b;--gold2:#8a611d;--ok:#2e8b57;--bad:#c0392b;--r:16px}
+:root{color-scheme:only light;--bg:#f6f2ea;--card:#ffffff;--card2:#f3eee4;--line:#e6dfd1;--ink:#1d2433;--mut:#7a7f8c;--gold:#a8792b;--gold2:#8a611d;--ok:#2e8b57;--bad:#c0392b;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
 body{padding:env(safe-area-inset-top) 0 calc(150px + env(safe-area-inset-bottom))}
@@ -221,12 +222,12 @@ details.card[open] summary::after{content:"−"}
 .calg button i{position:absolute;bottom:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--ok)}
 .calf{display:flex;gap:14px;justify-content:center;font-size:11px;color:var(--mut);margin-top:10px}
 .calf .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lg.pl{background:rgba(201,161,74,.3)}.lg.dt{background:var(--ok);border-radius:50%}
-#gate{display:none;position:fixed;inset:0;z-index:100;background:radial-gradient(120% 70% at 50% 0%,#fffaf0,var(--bg));overflow-y:auto}
+#gate{display:none;position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto}
 .gin{max-width:420px;margin:0 auto;padding:46px 20px 40px}
 .glogo{text-align:center;margin-bottom:24px}.gring{width:46px;height:46px;margin:0 auto 18px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 24px rgba(201,161,74,.55)}
 .gname{font-size:34px;font-weight:800;letter-spacing:.3em;background:linear-gradient(90deg,var(--gold),#d4a64a,var(--gold2));-webkit-background-clip:text;background-clip:text;color:transparent;padding-left:.3em}
 .gtag{font-size:10px;letter-spacing:.3em;color:var(--mut);margin-top:8px}
-.gcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(80,60,20,.08)}
+.gcard{background:linear-gradient(135deg,#ffffff,#fbf8f2);border:1px solid var(--line);border-radius:20px;padding:20px}
 .gcard h2{margin:0 0 6px;font-size:22px}.gcard p{margin:0 0 14px;color:var(--mut);line-height:1.45}
 .gcard input{margin-bottom:10px}
 .gtabs{display:flex;background:var(--card2);border-radius:12px;padding:4px;margin-bottom:14px}
@@ -234,10 +235,10 @@ details.card[open] summary::after{content:"−"}
 .gtabs button.on{background:var(--card);color:var(--gold2);box-shadow:0 1px 3px rgba(80,60,20,.12)}
 .glink{display:block;width:100%;background:none;color:var(--gold2);font-weight:700;margin-top:12px;height:36px}
 .gsmall{font-size:12px;color:var(--mut);text-align:center;margin-top:12px;line-height:1.4}.gsmall a{color:var(--gold2);font-weight:700}
-.gmsg{background:rgba(201,161,74,.12);border:1px solid rgba(201,161,74,.3);color:var(--gold2);border-radius:12px;padding:10px 12px;font-size:13px;margin:4px 0 4px;line-height:1.4}
+.gmsg{background:rgba(201,161,74,.1);border:1px solid rgba(201,161,74,.25);color:var(--gold2);border-radius:12px;padding:10px 12px;font-size:13px;margin:4px 0 4px;line-height:1.4}
 .ggrp{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin:14px 0 8px}
 .gopt{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;color:var(--ink)}
-.gopt.hl{border:2px solid var(--gold);background:#fffaf0}.gopt b{display:block;font-size:15px}.gopt span{font-size:12px;color:var(--mut)}.gopt em{font-style:normal;font-weight:800;color:var(--gold2);font-size:16px;white-space:nowrap}
+.gopt.hl{border:2px solid var(--gold);background:var(--card)}.gopt b{display:block;font-size:15px}.gopt span{font-size:12px;color:var(--mut)}.gopt em{font-style:normal;font-weight:800;color:var(--gold2);font-size:16px;white-space:nowrap}
 .gspin{width:36px;height:36px;margin:10px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--gold);animation:gsp 1s linear infinite}@keyframes gsp{to{transform:rotate(360deg)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1142,7 +1143,7 @@ const PLAN_NAME={essencial:"Aura Essencial",pro:"Aura Pro"};
 const fmtD=s=>{try{return new Date(s).toLocaleDateString("pt-BR")}catch(e){return ""}};
 const subActive=s=>!!(s&&s.status==="active"&&new Date(s.expires_at)>new Date());
 const G=()=>document.getElementById("gate");
-function gateShow(html){ const g=G(); g.innerHTML=`<div class="gin"><div class="glogo"><div class="gring"></div><div class="gname">A U R A</div><div class="gtag">CORPO · MENTE · DISCIPLINA</div></div>${html}</div>`; g.style.display="block"; document.body.style.overflow="hidden" }
+function gateShow(html){ const g=G(); g.innerHTML=`<div class="gin"><div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>${html}</div>`; g.style.display="block"; document.body.style.overflow="hidden" }
 function gateHide(){ const g=G(); g.style.display="none"; g.innerHTML=""; document.body.style.overflow="" }
 const gMsg=()=>gateMsg?`<div class="gmsg">${esc(gateMsg)}</div>`:"";
 
