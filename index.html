@@ -1023,7 +1023,7 @@ function renderDia(){
   <div class="kpis"><div class="kpi"><div class="k">Séries</div><div class="v">${sm.series}</div></div><div class="kpi"><div class="k">Volume</div><div class="v">${sm.volume.toLocaleString("pt-BR")} kg</div><div class="d">carga × reps</div></div><div class="kpi"><div class="k">Cardio / tênis</div><div class="v">${sm.cardioMin} min</div></div><div class="kpi"><div class="k">Sessão</div><div class="v">${info.s==="REST"?"Descanso":info.s==="TENNIS"?"Tênis":"Treino "+info.s}</div></div></div>
   <div class="card">
     <div class="grid2"><div class="f"><label>Peso em jejum (kg)</label><input inputmode="decimal" value="${esc(D.peso)}" oninput="dset('peso',this.value,1)" placeholder="82,0"></div>
-    <div class="f"><label>Cintura no umbigo (cm)${monday?" · hoje":""}</label><input inputmode="decimal" value="${esc(D.cintura)}" oninput="dset('cintura',this.value,1)" placeholder="${monday?"medir hoje":"opcional"}"></div>
+    <div class="f"><label>Medir cintura no umbigo (opcional) (cm)</label><input inputmode="decimal" value="${esc(D.cintura)}" oninput="dset('cintura',this.value,1)" placeholder="${monday?"medir hoje":"ex.: 98"}"></div>
     <div class="f"><label>Sono da noite (h)</label><input inputmode="decimal" value="${esc(D.sono)}" oninput="dset('sono',this.value,1)" placeholder="7,5"></div>
     <div class="f"><label>Passos</label><input inputmode="numeric" value="${esc(D.passos)}" oninput="dset('passos',this.value,1)" placeholder="9000"></div></div>
     ${bioBlock(D)}
