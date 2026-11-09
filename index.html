@@ -524,7 +524,7 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
   if(info.s==="TENNIS"){ const t=setsOn(sel).find(s=>s.ex==="tenis");
     v.innerHTML=`<div class="hero">${head(info)}<h1>Tênis no saibro</h1><div class="sub">10h às 12h. Café reforçado às 8h, eletrólitos na garrafa e isotônico ou gel no intervalo. Sem musculação hoje.</div></div>
     <div class="card"><h3>Registrar o tênis</h3>
@@ -532,7 +532,7 @@ function renderTreino(){
       `<div class="grid2"><div class="stepper"><label>Minutos</label><div class="st"><button onclick="adj('ten_m',-10)">−</button><input id="ten_m" inputmode="numeric" value="120"><button onclick="adj('ten_m',10)">+</button></div></div>
       <div class="stepper"><label>Esforço 1 a 10</label><div class="st"><button onclick="adj('ten_e',-1)">−</button><input id="ten_e" inputmode="numeric" value="7"><button onclick="adj('ten_e',1)">+</button></div></div></div>
       <button class="big" onclick="logTennis()">Registrar tênis</button>`}
-    </div>${baseLink("treino")}`; return }
+    </div>${uploadCard()}${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -553,7 +553,7 @@ function renderTreino(){
     <div class="hint n">Aquecimento (10 min): 7 min de esteira leve, mobilidade de quadril e ombro, 1 série de rotação externa e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
-    ${baseLink("treino")}`;
+    ${uploadCard()}${baseLink("treino")}`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
@@ -1138,10 +1138,10 @@ function uploadCard(){
     return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">${li.length?"A Aura encontrou":"Nada para adicionar"}</div><div class="sub">${esc(r.resumo||"")}</div>
       ${li.length?`<ul class="feat" style="margin-top:8px">${li.join("")}</ul>`:""}${r.aviso?`<div class="hint" style="margin-top:8px">${esc(r.aviso)}</div>`:""}
       ${li.length?`<button class="big" onclick="upApply()">Adicionar ao meu plano</button>`:""}<button class="ghost" style="width:100%;margin-top:8px" onclick="upReset()">${li.length?"Descartar":"Enviar outro arquivo"}</button></div>`; }
-  return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">Tem resultados em foto ou PDF?</div>
-    <div class="sub">Envie o print ou o PDF da sua bioimpedância (FitDays e outras), do relógio (Garmin, Samsung) ou da sua dieta. A Aura lê e adiciona ao seu plano.</div>
+  return `<div class="prof">${head}<div style="font-size:17px;font-weight:800;margin:6px 0 4px">Envie seus resultados em PDF</div>
+    <div class="sub">Envie o PDF da sua bioimpedância (FitDays e outras), do relógio (Garmin, Samsung), de exames de avaliação física ou da sua dieta. A Aura lê e adiciona ao seu plano. Também aceita foto ou print.</div>
     ${UP.err?`<div class="hint" style="margin-top:8px;color:var(--bad)">${esc(UP.err)}</div>`:""}
-    <label class="big" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Enviar arquivo<input type="file" accept="image/*,application/pdf,.csv,.txt,.json,.xml,.gpx,.tcx" style="display:none" onchange="upPick(this)"></label></div>`;
+    <label class="big" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Enviar PDF<input type="file" accept="application/pdf,image/*,.csv,.txt" style="display:none" onchange="upPick(this)"></label></div>`;
 }
 window.upReset=()=>{ UP={busy:false,res:null,name:"",err:""}; render(true) };
 function fileB64(blob){ return new Promise((ok,no)=>{ const fr=new FileReader(); fr.onload=()=>ok(String(fr.result).split(",")[1]); fr.onerror=no; fr.readAsDataURL(blob) }) }
