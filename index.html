@@ -338,9 +338,9 @@ function dayInfo(dateStr){
   const d=fromIso(dateStr); const raw=Math.round((d-START)/864e5); const cyc=raw<0?0:Math.floor(raw/30); const idx=raw<0?raw:raw%30;
   const ph = idx<0?0: idx<7?0: idx<14?1: idx<21?2: idx<28?3:4;
   let s=WEEK[d.getDay()], note="";
-  if(idx===0) note="Dia 1: antes de treinar, pese-se em jejum, meça a cintura e tire 3 fotos (registre no Fim do dia).";
+  if(idx===0) note="Dia 1: antes de treinar, pese-se em jejum e meça a cintura (registre no Fim do dia).";
   if(idx===28) note="Treino teste: tente bater as marcas do dia 1.";
-  if(idx===29) note="Reavaliação: peso, cintura e fotos. Treino leve, RIR 3.";
+  if(idx===29) note="Reavaliação: peso e cintura. Treino leve, RIR 3.";
   return {idx,day:idx+1,cyc,inPlan:idx>=0,phase:ph,s,dow:d.getDay(),note,light:idx===29};
 }
 function plannedSets(sets,info){return (info.phase===0||info.light)&&sets>1?Math.max(2,sets-1):sets}
