@@ -1,4 +1,4 @@
-const CACHE="aura-v10";
+const CACHE="aura-v11";
 const ASSETS=["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "img/afundo_bulgaro.jpg", "img/agachamento_goblet.jpg", "img/crossover.jpg", "img/crucifixo.jpg", "img/desenvolvimento.jpg", "img/elevacao_lateral.jpg", "img/esteira.jpg", "img/farmer_walk.jpg", "img/flexao.jpg", "img/lenhador.jpg", "img/pallof.jpg", "img/panturrilha.jpg", "img/passada_lateral.jpg", "img/prancha.jpg", "img/pullover.jpg", "img/puxada_frontal.jpg", "img/remada_unilateral.jpg", "img/rosca_direta.jpg", "img/rosca_martelo.jpg", "img/rotacao_externa.jpg", "img/squeeze_press.jpg", "img/step_up.jpg", "img/stiff.jpg", "img/supino_inclinado.jpg", "img/supino_reto.jpg", "img/triceps_corda.jpg", "img/triceps_testa.jpg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

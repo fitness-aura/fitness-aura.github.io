@@ -521,7 +521,7 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem academia hoje. Bata 8 mil passos, a proteína (165 g) e deite até 21h30: amanhã é às 5h.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}`; return }
   if(info.s==="TENNIS"){ const t=setsOn(sel).find(s=>s.ex==="tenis");
     v.innerHTML=`<div class="hero">${head(info)}<h1>Tênis no saibro</h1><div class="sub">10h às 12h. Café reforçado às 8h, eletrólitos na garrafa e isotônico ou gel no intervalo. Sem musculação hoje.</div></div>
     <div class="card"><h3>Registrar o tênis</h3>
@@ -529,7 +529,7 @@ function renderTreino(){
       `<div class="grid2"><div class="stepper"><label>Minutos</label><div class="st"><button onclick="adj('ten_m',-10)">−</button><input id="ten_m" inputmode="numeric" value="120"><button onclick="adj('ten_m',10)">+</button></div></div>
       <div class="stepper"><label>Esforço 1 a 10</label><div class="st"><button onclick="adj('ten_e',-1)">−</button><input id="ten_e" inputmode="numeric" value="7"><button onclick="adj('ten_e',1)">+</button></div></div></div>
       <button class="big" onclick="logTennis()">Registrar tênis</button>`}
-    </div>`; return }
+    </div>${uploadCard()}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -549,7 +549,8 @@ function renderTreino(){
     <div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:6px">${done} de ${tot} séries · ${pct}%</div></div>
     <div class="hint n">Aquecimento (10 min): 7 min de esteira leve, mobilidade de quadril e ombro, 1 série de rotação externa e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
-    ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}`;
+    ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
+    ${uploadCard()}`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
@@ -648,7 +649,6 @@ function renderHome(){
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
   $("#view").innerHTML=inst+`<div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>
   ${profileCard()}
-  ${uploadCard()}
   <div class="todaycard"><div class="kick">${greet}${PROFILE&&PROFILE.answers&&PROFILE.answers.nome?", "+esc(PROFILE.answers.nome.split(" ")[0]):""}</div>
     <div style="font-size:20px;font-weight:800;margin-top:6px">${info.inPlan?`Dia ${info.day} de 30 · `:""}${sess}</div>
     <div class="sub">${esc(sessD)}${info.inPlan?` · ${PHASES[info.phase].n}`:""}</div>
@@ -1019,7 +1019,6 @@ function renderDia(){
   if(dayDraftDate!==sel){ dayDraftDate=sel; dayDraft=saved?{...saved}:{peso:"",cintura:"",sono:"",passos:"",proteina:null,creatina:null,energia:null,notas:""}; for(const k of ["peso","cintura","sono","passos","gordura","musculo","agua","visceral","tmb"]) if(dayDraft[k]==null) dayDraft[k]=""; if(dayDraft.proteina==null){const ds=dietStats(sel); if(ds.done) dayDraft.proteina=ds.prot>=150} }
   const D=dayDraft; const tg=(f,v,l)=>`<button class="${D[f]===v?"on":""}" onclick="dset('${f}',${JSON.stringify(v)})">${l}</button>`;
   $("#view").innerHTML=`<div class="hero">${head(info)}<h1>Fim do dia</h1><div class="sub">${saved?"Dia já salvo. Pode editar e salvar de novo.":"Preencha antes de dormir. Leva 30 segundos."}</div></div>
-  ${uploadCard()}
   <div class="kpis"><div class="kpi"><div class="k">Séries</div><div class="v">${sm.series}</div></div><div class="kpi"><div class="k">Volume</div><div class="v">${sm.volume.toLocaleString("pt-BR")} kg</div><div class="d">carga × reps</div></div><div class="kpi"><div class="k">Cardio / tênis</div><div class="v">${sm.cardioMin} min</div></div><div class="kpi"><div class="k">Sessão</div><div class="v">${info.s==="REST"?"Descanso":info.s==="TENNIS"?"Tênis":"Treino "+info.s}</div></div></div>
   <div class="card">
     <div class="grid2"><div class="f"><label>Peso em jejum (kg)</label><input inputmode="decimal" value="${esc(D.peso)}" oninput="dset('peso',this.value,1)" placeholder="82,0"></div>
