@@ -49,6 +49,7 @@ input,textarea,select{font-family:inherit;font-size:16px;color:var(--ink);backgr
 .ex.open .exb{display:block}
 .pic{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:10px}
 .pic img{width:100%;display:block}
+.pic img[src$=".webp"]{max-width:340px;margin:0 auto}
 .cues{margin:0 0 10px;padding-left:18px;color:#4a5263;font-size:13px;line-height:1.5}
 .hint{background:rgba(201,161,74,.1);border:1px solid rgba(201,161,74,.25);color:var(--gold2);border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:10px;line-height:1.4}
 .hint.n{background:#f3eee4;border-color:var(--line);color:#4a5263}
@@ -404,6 +405,8 @@ function localParse(text){
 }
 const dayType=info=>info.s==="TENNIS"?"tenis":info.s==="REST"?"descanso":"treino";
 
+// Ilustrações animadas (WebP); as demais seguem como imagem fixa
+const ANIM=new Set(["afundo_bulgaro","agachamento_goblet","crossover","crucifixo","desenvolvimento","elevacao_lateral","farmer_walk","flexao","lenhador","pallof","panturrilha","passada_lateral","pullover","puxada_frontal","remada_unilateral","rosca_direta","rosca_martelo","rotacao_externa","squeeze_press","step_up","stiff","supino_inclinado","supino_reto","triceps_corda","triceps_testa"]);
 /* ===================== ESTADO / DADOS ===================== */
 let sel=iso(new Date()); let tab="home"; let openEx=null;
 let SETS=[]; let DAYS={}; let DIET={}; let PROFILE=null; let SPORTS={items:[]}; let db=null; let mode="loading";
@@ -554,7 +557,7 @@ function renderTreino(){
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
-  const pic=E.img?`<div class="pic"><img src="img/${E.img}.jpg" alt="${esc(E.n)}" loading="lazy"></div>`:"";
+  const pic=E.img?`<div class="pic"><img src="img/${E.img}.${ANIM.has(E.img)?"webp":"jpg"}" alt="${esc(E.n)}" loading="lazy"></div>`:"";
   const cues=`<ul class="cues">${E.c.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`;
   const logs=mine.length?`<div class="logs">${mine.map((s,i)=>`<div class="log"><b>Série ${i+1}</b><span>${E.m==="load"?`${fmtKg(s.w)} kg × ${s.reps}`:E.m==="time"?`${s.reps} s`:E.m==="dist"?`${fmtKg(s.w)} kg × ${s.reps} m`:E.m==="tread"||E.m==="simple"?`${s.reps} min`:`${s.reps} reps`}${s.rir!=null&&s.rir!==""&&E.m!=="tread"&&E.m!=="simple"?` · RIR ${s.rir}`:""}</span><button class="x" onclick="delSet('${s.id}')" aria-label="Apagar">×</button></div>`).join("")}</div>`:"";
   if(E.m==="tread"){
