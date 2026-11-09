@@ -101,7 +101,7 @@ td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left}
 th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
 .empty{color:var(--mut);font-size:13px;text-align:center;padding:18px 0}
 .banner{background:#fdf0e4;border:1px solid #e3b98a;color:#7a4a1c;border-radius:12px;padding:10px 12px;font-size:12.5px;margin-bottom:10px;display:none}
-.toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--ok);color:#ffffff;font-weight:700;padding:10px 16px;border-radius:12px;z-index:50;display:none;font-size:14px}
+.toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--ok);color:#ffffff;font-weight:700;padding:10px 16px;border-radius:12px;z-index:200;display:none;font-size:14px}
 .tm{text-align:center;padding:8px 0}
 .tm .big2{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--gold2)}
 .tm .now{display:flex;justify-content:center;gap:10px;margin:10px 0}
@@ -1183,7 +1183,7 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 let deferredInstall=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); deferredInstall=e; render()});
 window.addEventListener("appinstalled",()=>{deferredInstall=null; toast("Aura instalada ✓"); render()});
-window.installAura=async()=>{ if(!deferredInstall){ toast("Use o menu ⋮ do Chrome e toque em Instalar app",true); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
+window.installAura=async()=>{ if(!deferredInstall){ toast(isIOS&&isIOS()?"Toque em Compartilhar e em Adicionar à Tela de Início":"Toque no menu ⋮ do Chrome e em Instalar app",true); return } deferredInstall.prompt(); try{ await deferredInstall.userChoice }catch(e){} deferredInstall=null; render() };
 let isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone}catch(e){return false}};
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})) }
 /* ===================== CALENDÁRIO (toque na data) ===================== */
@@ -1214,7 +1214,16 @@ const PLAN_NAME={essencial:"Aura",pro:"Aura"};
 const fmtD=s=>{try{return new Date(s).toLocaleDateString("pt-BR")}catch(e){return ""}};
 const subActive=s=>!!(s&&s.status==="active"&&new Date(s.expires_at)>new Date());
 const G=()=>document.getElementById("gate");
-function gateShow(html){ const g=G(); g.innerHTML=`<div class="gin"><div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>${html}</div>`; g.style.display="block"; document.body.style.overflow="hidden" }
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function gInstHtml(){
+  if(isStandalone()) return "";
+  if(isIOS()) return `<div class="hint" style="margin-bottom:14px"><b>Instale a Aura no iPhone</b><br>Toque em <b>Compartilhar</b> (quadrado com seta) e depois em <b>Adicionar à Tela de Início</b>.</div>`;
+  return `<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`;
+}
+function gInstRefresh(){ const e=document.getElementById("gInst"); if(e) e.innerHTML=gInstHtml() }
+window.addEventListener("beforeinstallprompt",()=>setTimeout(gInstRefresh,0));
+window.addEventListener("appinstalled",()=>setTimeout(gInstRefresh,0));
+function gateShow(html){ const g=G(); g.innerHTML=`<div class="gin"><div id="gInst">${gInstHtml()}</div><div class="logo"><div class="ring"><i></i></div><div class="w">AURA</div><div class="s">Corpo · Mente · Disciplina</div></div>${html}</div>`; g.style.display="block"; document.body.style.overflow="hidden" }
 function gateHide(){ const g=G(); g.style.display="none"; g.innerHTML=""; document.body.style.overflow="" }
 const gMsg=()=>gateMsg?`<div class="gmsg">${esc(gateMsg)}</div>`:"";
 
