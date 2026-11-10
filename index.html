@@ -284,6 +284,7 @@ html.dark [style*="background:#fdecec"]{background:#2c1616!important;color:#f1b8
 html.dark [style*="color:#1d2433"]{color:var(--ink)!important}
 html.dark svg text[fill="#1d2433"]{fill:var(--ink)}
 html.dark .pic{background:#f4f1ea}
+html.dark .fl .fs h4,html.dark .fl .fs li:before{color:#5ccf8f}html.dark .fl .fn h4,html.dark .fl .fn li:before{color:#ff7b7b}
 html.dark .tabs{background:rgba(20,18,15,.96)}
 
 /* ===== trocar / adicionar exercício ===== */
@@ -298,6 +299,14 @@ html.dark .tabs{background:rgba(20,18,15,.96)}
 .exa{display:flex;gap:8px;margin-top:10px}.exa button{flex:1}
 .addex{width:100%;border:1.5px dashed var(--gold);background:transparent;color:var(--gold);border-radius:var(--r);padding:14px;font-weight:700;font-size:15px;margin:2px 0 12px}
 .tagx{font-size:10px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+
+.fl h4{margin:12px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.fl .fs h4{color:#2e8b57}.fl .fm h4{color:var(--gold2)}.fl .fn h4{color:#c0392b}
+.fl ul{margin:0;padding-left:0;list-style:none}.fl li{font-size:14px;line-height:1.45;padding:3px 0 3px 22px;position:relative}
+.fl .fs li:before{content:"✓";position:absolute;left:2px;color:#2e8b57;font-weight:700}
+.fl .fm li:before{content:"~";position:absolute;left:4px;color:var(--gold2);font-weight:700}
+.fl .fn li:before{content:"✕";position:absolute;left:2px;color:#c0392b;font-weight:700}
+.fl .fg{font-size:12px;color:var(--mut);font-weight:700;margin:8px 0 2px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>try{if(localStorage.getItem("aura_tema")==="escuro")document.documentElement.classList.add("dark")}catch(e){}</script>
@@ -704,6 +713,36 @@ function buildSwaps(a){
   const prot=veg?"200 g de tofu · 1 dose de proteína vegetal + 1 xícara de grão-de-bico · 1,5 xícara de lentilha":vegt?"4 ovos + 2 claras · 200 g de tofu · 300 g de iogurte grego + 1 dose de whey":`150 g de frango · 130 g de patinho${npx?"":" · 170 g de tilápia"} · 4 ovos + 2 claras`;
   return [["Proteína (~40 g)",prot],["Carboidrato (~45 g)","150 g de arroz · 200 g de batata · 120 g de mandioca · 80 g de tapioca · 150 g de batata-doce"],["Gordura (~10 g)","1 colher de sopa de azeite · 15 g de pasta de amendoim · 15 g de castanhas"]];
 }
+
+// Lista de alimentos permitidos, com moderação e a evitar, montada a partir do perfil da pessoa
+function buildFoodLists(a){
+  const r=a.restricoes||[]; const veg=r.includes("Vegano"), vegt=veg||r.includes("Vegetariano"), npx=r.includes("Não como peixe");
+  const sg=r.includes("Sem glúten"), sl=r.includes("Sem lactose"), nf=r.includes("Não come frutas")||r.includes("Não como frutas");
+  const obj=a.objetivo||"Recomposição"; const cut=["Perder gordura","Recomposição"].includes(obj), bulk=obj==="Hipertrofia", perf=obj==="Performance esportiva";
+  const ng=String(a.naogosta||"").toLowerCase().split(/[,;.]+|\se\s/).map(x=>x.trim()).filter(x=>x.length>2);
+  const dislike=t=>ng.some(w=>t.toLowerCase().includes(w.replace(/s$/,"")));
+  const L=(x)=>x.filter(Boolean).filter(t=>!dislike(t));
+  const lac=t=>sl?t+" sem lactose":t, glu=t=>sg?t+" sem glúten":t;
+  const prot=L([!vegt&&"frango (peito, sobrecoxa sem pele)",!vegt&&"carne magra (patinho, alcatra, filé mignon, músculo)",!vegt&&!npx&&"peixes (tilápia, salmão, atum, sardinha)",!veg&&"ovos",!veg&&lac("iogurte natural ou grego"),!veg&&lac("queijo branco, cottage, ricota"),"tofu e tempeh","feijão, lentilha, grão-de-bico, ervilha","edamame",(a._whey||veg)&&(veg?"proteína vegetal em pó":lac("whey protein"))]);
+  const carb=L(["arroz (branco, integral, parboilizado)","batata, batata-doce, mandioca, inhame","cuscuz de milho, milho, pipoca sem manteiga","tapioca",glu("aveia"),glu("pão integral"),glu("macarrão integral"),"quinoa"]);
+  const veggies=L(["folhas à vontade (alface, rúcula, agrião, espinafre)","legumes (brócolis, abobrinha, cenoura, abóbora, berinjela, tomate)",!nf&&"frutas inteiras (banana, maçã, mamão, morango, laranja, kiwi)"]);
+  const fat=L(["azeite de oliva","abacate",!veg&&"gema de ovo","castanhas, amêndoas, nozes","pasta de amendoim integral","sementes (chia, linhaça)"]);
+  const drink=L(["água","café sem açúcar ou com adoçante","chá sem açúcar","água com gás",!veg&&lac("leite desnatado"),"bebida vegetal sem açúcar"]);
+  const mod=L([cut?"carboidrato além da porção do cardápio":"doces de vez em quando, depois do treino",sg?"pães, bolos e massas sem glúten industrializados (costumam ter mais açúcar e gordura)":"pão francês e macarrão comum",!vegt&&"carne vermelha gorda (picanha, costela)",!veg&&lac("queijos amarelos (muçarela, prato, parmesão)"),"granola (veja o açúcar)","suco natural (prefira a fruta inteira)","frutas secas",bulk||perf?"":"pasta de amendoim (é calórica: 1 colher por vez)","adoçantes","embutidos magros (peito de peru)",perf&&"isotônico só em treino ou jogo acima de 1 h"]);
+  const no=[];
+  if(veg) no.push("carnes, frango, peixes e frutos do mar","ovos","leite, queijo, iogurte e manteiga","mel","whey de leite");
+  else if(vegt) no.push("carnes, frango, peixes e frutos do mar","caldos e temperos prontos com carne");
+  else if(npx) no.push("peixes e frutos do mar");
+  if(sg) no.push("trigo, cevada e centeio (pão, massa, bolo, biscoito, cerveja comum)","aveia sem selo sem glúten","empanados e farinha de rosca");
+  if(sl) no.push("leite, queijos e iogurtes comuns (com lactose)","molho branco, creme de leite e requeijão comuns");
+  if(nf) no.push("frutas (você marcou que não come): use legumes e verduras para as fibras");
+  no.push(cut?"refrigerante e suco de caixinha":"refrigerante comum","frituras (batata frita, pastel, salgados)","fast food e ultraprocessados (salsicha, nuggets, miojo)",cut?"doces, bolos, sorvete e chocolate ao leite":"excesso de doces e ultraprocessados","bebida alcoólica (no máximo 2 doses por semana)",cut?"molhos cremosos e maionese":"");
+  if(r.includes("Alergia alimentar")||r.includes("Outra")) no.push("qualquer alimento da sua alergia ou restrição, mesmo que apareça nas listas");
+  ng.forEach(w=>no.push(`${w} (você não gosta)`));
+  const obs={"Perder gordura":"Foco em secar: base de proteína magra, legumes e verduras; carboidrato só na porção do cardápio.","Recomposição":"Foco em perder gordura e ganhar músculo: proteína em todas as refeições e carboidrato concentrado perto do treino.","Hipertrofia":"Foco em ganhar massa: pode aumentar o carboidrato limpo e comer um pouco mais nos dias de treino.","Performance esportiva":"Foco em desempenho: carboidrato antes e depois do esporte, hidratação com eletrólitos em jogos longos.","Saúde e bem-estar":"Foco em saúde: comida de verdade, variedade e pouco ultraprocessado."}[obj]||"";
+  const rest=[veg?"vegana":vegt?"vegetariana":"",sg?"sem glúten":"",sl?"sem lactose":"",npx&&!vegt?"sem peixe":""].filter(Boolean);
+  return {titulo:`Dieta ${obj.toLowerCase()}${rest.length?" · "+rest.join(", "):""}`,obs,sim:[["Proteínas",prot],["Carboidratos",carb],["Verduras, legumes e frutas",veggies],["Gorduras boas",fat],["Bebidas",drink]],mod:mod.filter(Boolean),nao:[...new Set(no.filter(Boolean))]};
+}
 // Início do ciclo: o primeiro dia de musculação a partir do cadastro. Se a pessoa fez o
 // questionário depois do horário em que treina (ex.: à noite e treina de manhã), começa no próximo dia de treino.
 const HORA_FIM={"Madrugada (5h a 7h)":7,"Manhã":11,"Almoço":14,"Tarde":18,"Noite":22};
@@ -731,7 +770,7 @@ function applyPlan(){
   const M=calcMacros(a); const ML=buildMeals(a,M); Object.keys(MEALS).forEach(k=>delete MEALS[k]); Object.assign(MEALS,ML);
   RULES.length=0; RULES.push(...buildRules(a)); SWAPS.length=0; SWAPS.push(...buildSwaps(a));
   const c=a.corpo||{}; const h=HORA[a.horario]||HORA["Manhã"];
-  PLANINFO={hora:fh(h.t),horaTxt:h.lbl,prot:MEALS.treino.prot,sportDays,macros:M,
+  PLANINFO={foods:buildFoodLists(a),hora:fh(h.t),horaTxt:h.lbl,prot:MEALS.treino.prot,sportDays,macros:M,
     person:`${a.sexo==="Feminino"?"uma mulher":"um homem"} de ${c.idade||"?"} anos, ${c.altura||"?"} cm e ${c.peso||"?"} kg, objetivo ${String(a.objetivo||"").toLowerCase()}, treinando ${a.dias} vezes por semana ${h.lbl}${(a.restricoes||[]).filter(x=>x!=="Nenhuma").length?", restrições: "+a.restricoes.filter(x=>x!=="Nenhuma").join(", ").toLowerCase():""}${a.naogosta?", não come: "+a.naogosta:""}`};
 }
 
@@ -1252,6 +1291,12 @@ function dietStats(date){ const info=dayInfo(date); const P=MEALS[dayType(info)]
   prot+=(d.extra||0)*24+lg.reduce((a,e)=>a+(e.proteina||0),0); kcal+=(d.extra||0)*115+lg.reduce((a,e)=>a+(e.kcal||0),0);
   carb+=(d.extra||0)*2+lg.reduce((a,e)=>a+cf(e)[0],0); fat+=(d.extra||0)*1.5+lg.reduce((a,e)=>a+cf(e)[1],0); carb=Math.round(carb); fat=Math.round(fat);
   return {P,d,done,total:P.m.length,prot,kcal,carb,fat,left,leftProt:left.reduce((a,m)=>a+m[4],0),entries:lg.length,pct:Math.round(done/P.m.length*100)} }
+function foodListCard(){ const F=PLANINFO&&PLANINFO.foods; if(!F) return "";
+  return `<details class="card fl" open><summary>Alimentos permitidos e não permitidos</summary>
+    <div class="sub" style="margin:8px 0 2px">${esc(F.titulo)}. ${esc(F.obs)}</div>
+    <div class="fs"><h4>Pode comer</h4>${F.sim.filter(x=>x[1].length).map(([g,l])=>`<div class="fg">${g}</div><ul>${l.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`).join("")}</div>
+    <div class="fm"><h4>Com moderação</h4><ul>${F.mod.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
+    <div class="fn"><h4>Não pode / evitar</h4><ul>${F.nao.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div></details>` }
 function renderDieta(){
   const info=dayInfo(sel); const st=dietStats(sel); const P=st.P; const d=st.d;
   const ppct=Math.min(100,Math.round(st.prot/P.prot*100)); const sa=sportAdj(sel);
@@ -1263,6 +1308,7 @@ function renderDieta(){
     ${missCard(st)}
     <div class="kick" style="margin:14px 0 8px">Cardápio do plano</div>
     ${P.m.map(m=>mealCard(m,d)).join("")}
+    ${foodListCard()}
     <div class="food"><h3 style="margin:0 0 6px;font-size:15px">Comeu algo fora dos horários?</h3>
       <div class="sub" style="margin-bottom:8px">Beliscou, bebeu ou comeu algo além das refeições acima? Escreva aqui que entra na conta.</div>
       <textarea id="foodTxt" oninput="foodDraft=this.value" placeholder="Ex.: 1 barra de proteína, 1 cappuccino">${esc(foodDraft)}</textarea>
