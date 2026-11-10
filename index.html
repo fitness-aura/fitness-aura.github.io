@@ -344,6 +344,7 @@ function dayInfo(dateStr){
   const d=fromIso(dateStr); const raw=Math.round((d-START)/864e5); const cyc=raw<0?0:Math.floor(raw/30); const idx=raw<0?raw:raw%30;
   const ph = idx<0?0: idx<7?0: idx<14?1: idx<21?2: idx<28?3:4;
   let s=WEEK[d.getDay()], note="";
+  if(idx<0&&s!=="TENNIS") s="REST";
   if(idx===0) note="Dia 1: antes de treinar, pese-se em jejum e meça a cintura (registre no Fim do dia).";
   if(idx===28) note="Treino teste: tente bater as marcas do dia 1.";
   if(idx===29) note="Reavaliação: peso e cintura. Treino leve, RIR 3.";
@@ -637,13 +638,30 @@ function buildSwaps(a){
   const prot=veg?"200 g de tofu · 1 dose de proteína vegetal + 1 xícara de grão-de-bico · 1,5 xícara de lentilha":vegt?"4 ovos + 2 claras · 200 g de tofu · 300 g de iogurte grego + 1 dose de whey":`150 g de frango · 130 g de patinho${npx?"":" · 170 g de tilápia"} · 4 ovos + 2 claras`;
   return [["Proteína (~40 g)",prot],["Carboidrato (~45 g)","150 g de arroz · 200 g de batata · 120 g de mandioca · 80 g de tapioca · 150 g de batata-doce"],["Gordura (~10 g)","1 colher de sopa de azeite · 15 g de pasta de amendoim · 15 g de castanhas"]];
 }
+// Início do ciclo: o primeiro dia de musculação a partir do cadastro. Se a pessoa fez o
+// questionário depois do horário em que treina (ex.: à noite e treina de manhã), começa no próximo dia de treino.
+const HORA_FIM={"Madrugada (5h a 7h)":7,"Manhã":11,"Almoço":14,"Tarde":18,"Noite":22};
+// Faz o primeiro dia de treino ser o Treino A, mantendo a ordem B, C... nos dias seguintes.
+function rotateWeek(dow0){
+  const days=[]; for(let i=0;i<7;i++){ const w=(dow0+i)%7; const s=WEEK[w]; if(s&&s!=="REST"&&s!=="TENNIS") days.push(w) }
+  const L=days.map(w=>WEEK[w]).sort(); days.forEach((w,i)=>WEEK[w]=L[i]);
+}
+function planStart(a){
+  const st=(PROFILE&&(PROFILE.planAt||PROFILE.updatedAt))?new Date(PROFILE.planAt||PROFILE.updatedAt):new Date();
+  const d0=new Date(st.getFullYear(),st.getMonth(),st.getDate());
+  const ds=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
+  if((typeof SETS!=="undefined")&&SETS.some(s=>s.date>=ds(d0))) return d0; // já treinou pelo plano: não mexe no início
+  const d=new Date(d0); if(st.getHours()>=(HORA_FIM[a.horario]||11)) d.setDate(d.getDate()+1);
+  for(let i=0;i<7;i++){ const s=WEEK[d.getDay()]; if(s&&s!=="REST"&&s!=="TENNIS"){ rotateWeek(d.getDay()); return d } d.setDate(d.getDate()+1) }
+  return d0;
+}
 function applyPlan(){
   if(!(PROFILE&&PROFILE.answers)&&window.claude&&claude.use) return; // versão pessoal no Claude: mantém o plano original até haver questionário
-  const a=ans(); const sig=JSON.stringify([a,PROFILE&&PROFILE.planAt,(SPORTS.items||[]).map(i=>[i.sport,i.days,i.min,i.int])]);
+  const a=ans(); const sig=JSON.stringify([a,PROFILE&&PROFILE.planAt,(typeof SETS!=="undefined"&&SETS.length?SETS.reduce((m,s)=>s.date<m?s.date:m,"9"):""),(SPORTS.items||[]).map(i=>[i.sport,i.days,i.min,i.int])]);
   if(sig===PLANSIG) return; PLANSIG=sig;
-  const st=(PROFILE&&(PROFILE.planAt||PROFILE.updatedAt))?new Date(PROFILE.planAt||PROFILE.updatedAt):new Date(); START=new Date(st.getFullYear(),st.getMonth(),st.getDate());
   const {sess,order}=buildSessions(a); Object.keys(SESS).forEach(k=>delete SESS[k]); Object.assign(SESS,sess);
   const {W,sportDays}=buildWeek(a,order); Object.keys(WEEK).forEach(k=>delete WEEK[k]); Object.assign(WEEK,W);
+  START=planStart(a);
   const M=calcMacros(a); const ML=buildMeals(a,M); Object.keys(MEALS).forEach(k=>delete MEALS[k]); Object.assign(MEALS,ML);
   RULES.length=0; RULES.push(...buildRules(a)); SWAPS.length=0; SWAPS.push(...buildSwaps(a));
   const c=a.corpo||{}; const h=HORA[a.horario]||HORA["Manhã"];
@@ -769,7 +787,7 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div>${weekCard()}${orphanCard(sel,null)}<div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>${info.inPlan?"Descanso":"Seu plano começa "+(iso(START)===iso(new Date(Date.now()+864e5))?"amanhã":"em "+br(iso(START)))}</h1><div class="sub">${info.inPlan?"":`O primeiro treino é o Treino ${WEEK[START.getDay()]}, no dia ${br(iso(START))}. Hoje, `}${info.inPlan?"Sem treino hoje.":"sem treino."} Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div>${weekCard()}${orphanCard(sel,null)}<div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
   if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[];
     v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">Sem musculação hoje. Capriche no carboidrato antes, leve água com eletrólitos e registre cada esporte ao terminar.</div></div>
     ${weekCard()}${orphanCard(sel,null)}${sportDayCards()}${uploadCard()}${baseLink("treino")}`; return }
