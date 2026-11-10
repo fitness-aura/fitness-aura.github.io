@@ -285,6 +285,19 @@ html.dark [style*="color:#1d2433"]{color:var(--ink)!important}
 html.dark svg text[fill="#1d2433"]{fill:var(--ink)}
 html.dark .pic{background:#f4f1ea}
 html.dark .tabs{background:rgba(20,18,15,.96)}
+
+/* ===== trocar / adicionar exercício ===== */
+.pk{position:fixed;inset:0;background:rgba(20,16,10,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.pk .pb{background:var(--bg);width:100%;max-width:560px;max-height:86vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px 28px;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.pk h3{margin:0 0 4px;font-size:19px}.pk .pg{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:16px 0 6px}
+.pk .po{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px;color:var(--ink);font-size:15px;font-weight:600}
+.pk .po small{color:var(--mut);font-weight:500;font-size:12px}
+.pk .sc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.pk .sc button{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--ink);font-weight:600;font-size:13px}
+.pk .sc button.on{border-color:var(--gold);background:rgba(200,155,60,.12);color:var(--gold)}
+.exa{display:flex;gap:8px;margin-top:10px}.exa button{flex:1}
+.addex{width:100%;border:1.5px dashed var(--gold);background:transparent;color:var(--gold);border-radius:var(--r);padding:14px;font-weight:700;font-size:15px;margin:2px 0 12px}
+.tagx{font-size:10px;font-weight:700;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>try{if(localStorage.getItem("aura_tema")==="escuro")document.documentElement.classList.add("dark")}catch(e){}</script>
@@ -462,7 +475,21 @@ Object.assign(EX,{
 const DEF_ANS={sexo:"Masculino",corpo:{idade:"35",altura:"175",peso:"80"},objetivo:"Recomposição",prazo:"3 meses",foco:["Corpo todo por igual"],nivel:"Intermediário",dias:"4",tempo:"60 min",horario:"Manhã",local:"Academia completa",esporte:["Nenhum"],rotina:"Sentado a maior parte do dia",sono:"7 a 8 h",restricoes:["Nenhuma"],naogosta:"",refeicoes:"5",cozinha:"Cozinho em casa",lesoes:["Nenhuma"],suplementos:["Nenhum"]};
 let PLANSIG="", PLANINFO={hora:"", horaTxt:"", person:"", prot:150, rules:[], sportDays:{}};
 const DIAS_SEM=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
-const ans=()=>{ const a={...DEF_ANS,...((PROFILE&&PROFILE.answers)||{})}; if(Array.isArray(a.semana)&&a.semana.length) a.dias=String(a.semana.length); return a };
+const ans=()=>{ const a={...DEF_ANS,...((PROFILE&&PROFILE.answers)||{})}; if(Array.isArray(a.semana)&&a.semana.length) a.dias=String(a.semana.length); return enrich(a) };
+// Lê a meta escrita, os esportes, o sono, os suplementos e a cozinha para deixar o plano mais pessoal
+const META_FOCO=[[/peit|supino/i,"Peitoral"],[/b[ií]ceps|bra[cç]o|tr[ií]ceps/i,"Braços"],[/barriga|abd[oô]m|cintura|secar|pochete|gordura localizada/i,"Abdômen e cintura"],[/gl[uú]te|bumbum/i,"Glúteos"],[/perna|coxa|quadr[ií]ceps/i,"Pernas"],[/costas|dorsal/i,"Costas"],[/ombro/i,"Ombros"],[/panturrilha/i,"Panturrilhas"]];
+const SPORT_EX=[[/t[eê]nis|beach|padel|squash/i,["rot_ext","lenhador","passada_lat","pallof"]],[/corr|maratona|trail/i,["panturrilha","stepup","stiff","ponte"]],[/futebol|futsal|v[oô]lei|basquete/i,["passada_lat","stiff","panturrilha","stepup"]],[/nata|surf/i,["rot_ext","puxada","pallof"]],[/cicl|bike|pedal/i,["hip_thrust","stiff","pallof"]],[/luta|jiu|muay|boxe|judô|judo/i,["farmer","lenhador","pallof"]]];
+function enrich(a){
+  const meta=String(a.meta||""); const add=[];
+  META_FOCO.forEach(([re,f])=>{ if(re.test(meta)&&!(a.foco||[]).includes(f)) add.push(f) });
+  let foco=(a.foco||[]).filter(f=>f!=="Corpo todo por igual"||!add.length); foco=[...foco,...add].slice(0,4);
+  const sp=[...(a.esporte||[]).filter(x=>x!=="Nenhum"),...(()=>{ try{ return (SPORTS.items||[]).map(i=>i.sport) }catch(e){ return [] } })()];
+  const esp=[...new Set(SPORT_EX.filter(([re])=>sp.some(x=>re.test(String(x)))).flatMap(x=>x[1]))];
+  const cond=/condicionamento|f[oô]lego|velocidade|agilidade|resist[eê]ncia|explos|cardio/i.test(meta);
+  let kadj=1; if(/perder\s*\d|emagrec|secar|barriga/i.test(meta)&&a.objetivo!=="Perder gordura"&&a.objetivo!=="Hipertrofia") kadj=0.96;
+  if(/ganhar\s*\d+\s*kg|ganhar massa|ganho de massa|hipertrof|crescer/i.test(meta)&&a.objetivo!=="Hipertrofia") kadj=1.04;
+  return {...a,foco,_metaFoco:add,_esp:esp,_cond:cond,_kadj:kadj,_sonoCurto:a.sono==="Menos de 6 h",_whey:(a.suplementos||[]).includes("Whey")};
+}
 const semanaDows=a=>Array.isArray(a.semana)&&a.semana.length?a.semana.map(n=>DIAS_SEM.indexOf(n)).filter(d=>d>=0):null;
 const PROT_T=()=>(MEALS.treino&&MEALS.treino.prot)||150;
 
@@ -473,7 +500,7 @@ function calcMacros(a){
   const act=rot+0.04*Math.min(7,+a.dias||3);
   const tdee=bmr*act;
   const adj={"Perder gordura":0.80,"Hipertrofia":1.10,"Recomposição":0.88,"Performance esportiva":1.0,"Saúde e bem-estar":0.95}[a.objetivo]||0.9;
-  let kcal=Math.max(male?1600:1300,Math.round(tdee*adj/50)*50);
+  let kcal=Math.max(male?1600:1300,Math.round(tdee*adj*(a._kadj||1)/50)*50);
   const h=cm/100, refKg=Math.min(kg,27*h*h);
   const pf={"Saúde e bem-estar":1.6,"Performance esportiva":1.8}[a.objetivo]||2.0;
   const prot=Math.round(refKg*pf); const fat=Math.max(male?55:45,Math.round(refKg*0.9));
@@ -512,7 +539,8 @@ function buildSessions(a){
   const nd=Math.max(1,Math.min(7,+a.dias||3)); const tpl=(TPL[Math.max(2,Math.min(6,nd))]||TPL[3]).map(x=>[x[0],x[1].slice()]);
   if(nd===7) tpl.push(["Condicionamento e core",["CARDIO","saude","core","core"]]);
   const foco=(a.foco||[]).flatMap(f=>FOCUS[f]||[]);
-  const maxEx=({"30 min":4,"45 min":5,"60 min":6,"75 min ou mais":7}[a.tempo]||6)+((a.foco||[]).some(f=>FOCUS[f])&&a.tempo!=="30 min"?1:0);
+  const maxEx=({"30 min":4,"45 min":5,"60 min":6,"75 min ou mais":7}[a.tempo]||6)+((a.foco||[]).some(f=>FOCUS[f])&&a.tempo!=="30 min"?1:0)-(a._sonoCurto&&a.tempo!=="30 min"?1:0);
+  GPOOL.esp=(a._esp||[]); const hasEsp=GPOOL.esp.some(k=>exAllowed(k,a));
   const home=/casa/.test(a.local||"");
   const fatGoal=["Perder gordura","Recomposição","Saúde e bem-estar"].includes(a.objetivo)||foco.includes("core");
   const lvl=a.nivel||"Intermediário"; const obj=a.objetivo||"Recomposição";
@@ -521,7 +549,7 @@ function buildSessions(a){
     if(obj==="Recomposição") return c?[8,12]:[10,15]; return c?[10,15]:[12,15]; };
   const letters="ABCDEFG"; const out={}; const order=[]; const rot={};
   tpl.forEach(([title,slots],si)=>{
-    const L=slots[0]==="CARDIO"?"Q":letters[si]; let sl=slots.filter(s=>s!=="CARDIO");
+    const L=slots[0]==="CARDIO"?"Q":letters[si]; let sl=slots.filter(s=>s!=="CARDIO"); if(hasEsp) sl=[...sl.filter(x=>x!=="cond"),"esp"];
     // foco: grupos prioritários entram primeiro e ganham espaço
     if(L!=="Q"){ const up=/Superiores|Peito|Costas|Empurrar|Puxar|Corpo/.test(title), lo=/Inferiores|Pernas|Corpo/.test(title);
       const fg=[...new Set(foco)]; const want=fg.length===1?3:2;
@@ -531,12 +559,12 @@ function buildSessions(a){
         const n=g==="core"?(fits?2:1):cross?1:iso?(fg.length===1?2:1):want;
         sl.push(...Array(n).fill(g)) });
       // ordem: foco composto, outros compostos, foco isolado, core do foco, outros isolados, core e condicionamento
-      const pr=g=>{ const f=fg.includes(g); if(crossG.has(g)) return 3.5; if(COMPOUND.has(g)) return f?0:1; if(g==="core") return f?2.5:4; if(g==="cond"||g==="saude") return 4; return f?2:3 };
+      const pr=g=>{ const f=fg.includes(g); if(crossG.has(g)) return 3.5; if(COMPOUND.has(g)) return f?0:1; if(g==="core") return f?2.5:4; if(g==="esp") return 2.7; if(g==="cond"||g==="saude") return 4; return f?2:3 };
       sl=sl.map((g,i)=>[g,i]).sort((x,y)=>pr(x[0])-pr(y[0])||x[1]-y[1]).map(x=>x[0]);
       // grupos não prioritários repetidos saem antes
       if(fg.length){ const seen={}; const keep=sl.filter(x=>{ if(fg.includes(x)) return true; seen[x]=(seen[x]||0)+1; return seen[x]===1 }); if(keep.length>=maxEx) sl=keep } }
-    const used=new Set(); const ex=[]; let n=0;
-    const cardioMin=L==="Q"?20:(fatGoal?({"30 min":8,"45 min":12,"60 min":15,"75 min ou mais":20}[a.tempo]||15):0);
+    const used=new Set(); const ex=[]; let n=0; const espK=new Set();
+    const cardioMin=L==="Q"?20:(fatGoal?({"30 min":8,"45 min":12,"60 min":15,"75 min ou mais":20}[a.tempo]||15):a._cond?10:0);
     if(L==="Q") ex.push([L+"1",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
     for(const g of sl){ if(ex.filter(e=>e[1]!=="esteira"&&e[1]!=="cardio_casa").length>=maxEx) break;
       const pool=(GPOOL[g]||[]).filter(k=>exAllowed(k,a)&&!used.has(k)); if(!pool.length) continue;
@@ -549,13 +577,14 @@ function buildSessions(a){
       else if(g==="core"){ r1=10; r2=12; rest=45 }
       else if(E.m==="bw"&&k==="flexao"){ r1=8; r2=25 }
       if(k==="rot_ext"){ sets=2; r1=r2=15; rest=30 }
-      ex.push([L+(ex.length+1),k,sets,r1,r2,rest]);
+      if(g==="esp"&&!isF){ sets=Math.min(sets,3); if(E.m!=="time"&&E.m!=="dist"&&k!=="rot_ext"){ r1=10; r2=12 } }
+      if(g==="esp") espK.add(k); ex.push([L+(ex.length+1),k,sets,r1,r2,rest]);
     }
     if(L!=="Q"&&cardioMin) ex.push(["E",home?"cardio_casa":"esteira",1,cardioMin,cardioMin,0]);
     if(!home&&L!=="Q"&&!cardioMin) ex.push(["F","bike",1,8,8,0]);
     const GN={peito:"Peito",costas:"Costas",ombro:"Ombros",biceps:"Braços",triceps:"Braços",quad:"Pernas",post:"Glúteos",pant:"Panturrilhas",core:"Core",cond:"Condicionamento"};
-    const KG={}; Object.entries(GPOOL).forEach(([g,ks])=>ks.forEach(k=>{ if(!KG[k]) KG[k]=g }));
-    const names=[...new Set(ex.map(e=>GN[KG[e[1]]]).filter(x=>x&&x!=="Core"&&x!=="Condicionamento"))].slice(0,3).map((x,i)=>i?x.toLowerCase():x);
+    const KG={}; Object.entries(GPOOL).forEach(([g,ks])=>{ if(g!=="esp") ks.forEach(k=>{ if(!KG[k]) KG[k]=g }) });
+    const names=[...new Set(ex.filter(e=>!espK.has(e[1])).map(e=>GN[KG[e[1]]]).filter(x=>x&&x!=="Core"&&x!=="Condicionamento"))].slice(0,3).map((x,i)=>i?x.toLowerCase():x);
     const t2=L==="Q"?title:names.length>1?names.slice(0,-1).join(", ")+" e "+names[names.length-1]:(names[0]||title);
     out[L]={t:t2,ex}; order.push(L);
   });
@@ -603,12 +632,12 @@ function portion(k,g){ const u=FOOD[k][6]; if(u){ const n=Math.max(k==="ovo"?1:0
 function buildMeal(kind,share,T,a,idx){
   // escolhe alimentos por tipo de refeição e calcula as porções para bater a proteína e o carboidrato do horário
   const tp=T.prot*share, tc=T.carb*share, tf=T.fat*share; const items=[];
-  let prot=null, carb=null, carb2=null, extra=null;
+  let prot=null, prot2=null, carb=null, carb2=null, extra=null;
   if(kind==="cafe"){ prot=pick(["ovo","iogurte","tofu"],a,0); carb=pick(["tapioca","pao","cuscuz","aveia"],a,idx) }
   else if(kind==="lanche"){ const r=a.restricoes||[]; prot=pick(r.includes("Vegano")?["tofu"]:["iogurte","cottage"],a,idx); carb=pick(["aveia","banana","pao","tapioca"],a,idx) }
   else if(kind==="pre"){ carb=pick(["banana","pao","tapioca","mel"],a,idx) }
-  else { const r=a.restricoes||[]; const pl=r.includes("Vegano")?["tofu","grao","lentilha"]:r.includes("Vegetariano")?["ovo","tofu","grao","lentilha"]:["frango","patinho","peixe"];
-    prot=pick(pl,a,idx); carb=kind==="almoco"?pick(["arroz","batata","mandioca"],a,0):pick(["batata","arroz","batatadoce","mandioca"],a,idx); if(carb==="arroz") carb2=pick(["feijao"],a) }
+  else { const r=a.restricoes||[]; const pl=r.includes("Vegano")?["tofu","grao","lentilha"]:r.includes("Vegetariano")?(["Perder gordura","Recomposição"].includes(a.objetivo)?["tofu","ovo"]:["ovo","tofu","grao","lentilha"]):["frango","patinho","peixe"];
+    prot=pick(pl,a,idx); prot2=pick(pl.filter(x=>x!==prot),a,0); carb=kind==="almoco"?pick(["arroz","batata","mandioca"],a,0):pick(["batata","arroz","batatadoce","mandioca"],a,idx); if(carb==="arroz") carb2=pick(["feijao"],a) }
   let P=0,C=0,F=0,K=0; const parts=[]; const add=(k,g,slot)=>{ if(!k||g<=0) return; const p=portion(k,g); const f=FOOD[k]; P+=f[1]*p.g/100; C+=f[2]*p.g/100; F+=f[3]*p.g/100; K+=f[4]*p.g/100; parts.push([slot,p.unit&&(f[7]===k||k==="banana"||k==="ovo")?p.txt:`${p.txt} de ${fname(k,a)}`]) };
   // 1) carboidrato (traz um pouco de proteína), 2) proteína para completar, 3) gordura para completar
   const CCAP={pao:75,aveia:60,banana:200,mel:20};
@@ -618,8 +647,8 @@ function buildMeal(kind,share,T,a,idx){
     else if(cl>=6) add(carb,cl/FOOD[carb][2]*100,1) }
   const CAP={ovo:150,iogurte:200,queijo:60,cottage:200,tofu:250};
   if(prot){ const f=FOOD[prot]; const need=Math.max(0,tp-P);
-    if(kind==="cafe"||kind==="lanche"){ add(prot,Math.min(CAP[prot]||200,need/f[1]*100),0); const top=pick(["whey","wheyveg"],a); if(tp-P>6&&top&&top!==prot) add(top,(tp-P)/FOOD[top][1]*100,0) }
-    else add(prot,need/f[1]*100,0) }
+    if(kind==="cafe"||kind==="lanche"){ add(prot,Math.min(CAP[prot]||200,need/f[1]*100),0); const top=a._whey||(a.restricoes||[]).includes("Vegano")?pick(["whey","wheyveg"],a):pick(["ovo","cottage","queijo","iogurte","tofu"].filter(x=>x!==prot),a); if(tp-P>6&&top&&top!==prot) add(top,Math.min(top==="queijo"?50:top==="ovo"?100:150,(tp-P)/FOOD[top][1]*100),0) }
+    else { const g=need/f[1]*100; const cap=CAP[prot]; if(cap&&g>cap&&prot2){ add(prot,cap,0); const f2=FOOD[prot2]; add(prot2,Math.max(0,tp-P)/f2[1]*100,0) } else add(prot,g,0) } }
   const fl=tf-F; if(fl>4&&kind!=="pre"){ const fk=kind==="lanche"?pick(["pasta","castanha"],a,idx):"azeite"; if(fk) add(fk,fl/FOOD[fk][3]*100,2) }
   parts.sort((x,y)=>x[0]-y[0]); parts.forEach(p=>items.push(p[1]));
   if(kind==="almoco"||kind==="jantar") items.push("salada e legumes à vontade");
@@ -659,7 +688,13 @@ function buildRules(a){
   if(r.includes("Vegano")) out.push("Vegano: combine leguminosas (feijão, grão-de-bico, lentilha) com tofu e proteína vegetal em pó para fechar a proteína.");
   else if(r.includes("Vegetariano")) out.push("Vegetariano: ovos, laticínios, tofu e leguminosas garantem a proteína.");
   if(r.includes("Alergia alimentar")||r.includes("Outra")) out.push("Você marcou alergia ou outra restrição: confira cada alimento do cardápio e ajuste com um nutricionista.");
-  out.push("Restaurante: proteína grelhada, metade do prato com salada, carboidrato do tamanho de 1 punho.");
+  const meta=String(a.meta||"").trim(); if(meta) out.unshift(`Sua meta: "${meta.slice(0,140)}". ${a._metaFoco&&a._metaFoco.length?"O treino passou a priorizar "+a._metaFoco.join(", ").toLowerCase()+". ":""}${a._kadj<1?"As calorias têm um corte leve a mais para secar. ":a._kadj>1?"As calorias têm um pouco a mais para ganhar massa. ":""}${a._cond?"Entrou cardio em todos os treinos para o condicionamento.":""}`.trim());
+  if(a.cozinha==="Como fora quase sempre") out.push("Você come fora quase sempre: monte o prato como no cardápio. Peça proteína grelhada no tamanho da palma da mão (ou 2), carboidrato do tamanho de 1 punho e metade do prato com salada. Evite fritura e molho cremoso.");
+  else if(a.cozinha&&a.cozinha.startsWith("Às vezes")) out.push("Nos dias em que pedir comida: proteína grelhada, arroz e feijão ou batata, salada. Nos dias em casa, cozinhe proteína para 2 dias.");
+  else out.push("Cozinhando em casa: prepare a proteína e o carboidrato de 2 a 3 dias de uma vez; fica fácil seguir o cardápio.");
+  if(!a._whey&&!(a.restricoes||[]).includes("Vegano")) out.push("Você não usa whey: o cardápio fecha a proteína só com comida (ovos, iogurte, queijo, carnes).");
+  if((a.suplementos||[]).includes("Creatina")) out.push("Creatina: 3 a 5 g por dia, todos os dias, em qualquer horário.");
+  if(a._sonoCurto) out.push("Você dorme menos de 6 h: o treino ficou um pouco mais curto para você recuperar. Tentar dormir 7 h faz mais diferença no resultado do que qualquer suplemento.");
   out.push("Álcool: o ideal é zero; no máximo 2 doses por semana, nunca na véspera de treino ou de esporte.");
   out.push(a.objetivo==="Hipertrofia"?"Ajuste a cada 15 dias: se o peso não subir, some 30 g de carboidrato por dia.":"Ajuste a cada 15 dias: se a média de peso não cair, tire 30 g de carboidrato do jantar.");
   return out;
@@ -699,7 +734,6 @@ function applyPlan(){
   PLANINFO={hora:fh(h.t),horaTxt:h.lbl,prot:MEALS.treino.prot,sportDays,macros:M,
     person:`${a.sexo==="Feminino"?"uma mulher":"um homem"} de ${c.idade||"?"} anos, ${c.altura||"?"} cm e ${c.peso||"?"} kg, objetivo ${String(a.objetivo||"").toLowerCase()}, treinando ${a.dias} vezes por semana ${h.lbl}${(a.restricoes||[]).filter(x=>x!=="Nenhuma").length?", restrições: "+a.restricoes.filter(x=>x!=="Nenhuma").join(", ").toLowerCase():""}${a.naogosta?", não come: "+a.naogosta:""}`};
 }
-
 
 /* ===================== ESTADO / DADOS ===================== */
 /* modo noturno */
@@ -828,18 +862,18 @@ function renderTreino(){
   if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[];
     v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">Sem musculação hoje. Capriche no carboidrato antes, leve água com eletrólitos e registre cada esporte ao terminar.</div></div>
     ${weekCard()}${orphanCard(sel,null)}${sportDayCards()}${uploadCard()}${baseLink("treino")}`; return }
-  const S=SESS[info.s]; const today=setsOn(sel);
+  const S=daySess(sel,info.s); const today=setsOn(sel);
   let tot=0,done=0;
-  const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
+  const cards=S.ex.map(([code,key,sets,rmin,rmax,rs,orig,added])=>{
     const E=EX[key]; const n=plannedSets(sets,info); tot+=n;
     const mine=today.filter(s=>s.ex===key); const k=Math.min(mine.length,n); done+=k;
     const isOpen=openEx===code; const fin=mine.length>=n;
     const tgt = E.m==="tread"? `${treadBlocks(info.s,info).reduce((a,b)=>a+b[0],0)} min · protocolo inclinado` : E.m==="simple"? `${rmin} min` :
       `${n} × ${E.m==="time"?(rmin===rmax?rmin+" s":rmin+" a "+rmax+" s"):E.m==="dist"?rmin+" a "+rmax+" m":(key==="flexao"?"máx −2":(rmin===rmax?rmin:rmin+" a "+rmax))}${E.unit?" "+E.unit:""}${rs?" · "+rs+" s":""}`;
     return `<div class="ex ${isOpen?"open":""} ${fin?"done":""}" id="ex-${code}">
-      <button class="exh" onclick="toggleEx('${code}')"><span class="code">${code}</span><span><div class="exn">${esc(E.n)}</div><div class="ext">${tgt}</div></span>
+      <button class="exh" onclick="toggleEx('${code}')"><span class="code">${code}</span><span><div class="exn">${esc(E.n)}${added?'<span class="tagx">EXTRA</span>':orig?'<span class="tagx">TROCADO</span>':""}</div><div class="ext">${tgt}</div></span>
       <span class="dots">${Array.from({length:n},(_,i)=>`<i class="${i<k?"on":""}"></i>`).join("")}</span></button>
-      <div class="exb">${isOpen?exBody(code,key,n,rmin,rmax,rs,info,mine):""}</div></div>`;
+      <div class="exb">${isOpen?exBody(code,key,n,rmin,rmax,rs,info,mine)+`<div class="exa">${added?`<button class="ghost" onclick="addRemove('${code}')">Remover exercício</button>`:`<button class="ghost" onclick="swapOpen('${code}')">⇄ Trocar exercício</button>`}</div>`:""}</div></div>`;
   }).join("");
   const pct=tot?Math.round(done/tot*100):0;
   v.innerHTML=`<div class="hero">${head(info)}<h1>Treino ${info.s}</h1><div class="sub">${esc(S.t)} · ${PLANINFO.horaTxt||""}</div>
@@ -848,6 +882,7 @@ function renderTreino(){
     ${weekCard()}
     <div class="hint n">Aquecimento (10 min): ${/casa/.test(ans().local||"")?"5 min de polichinelo ou marcha no lugar":"7 min de esteira ou bicicleta leve"}, mobilidade de quadril e ombro e 1 a 2 séries leves do primeiro exercício.</div>
     ${orphanCard(sel,S)}${cards}
+    <button class="addex" onclick="addOpen()">+ Adicionar exercício</button>
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
     ${sportDayCards()}
     ${uploadCard()}${baseLink("treino")}`;
@@ -884,6 +919,51 @@ function exBody(code,key,n,rmin,rmax,rs,info,mine){
     `<button class="big" onclick="logSet('${code}','${key}',${rs},${n})">${over?`Registrar série extra (${next})`:`Registrar série ${next} de ${n}`}</button>`+logs;
 }
 
+
+/* ===================== TROCAR / ADICIONAR EXERCÍCIO ===================== */
+const GRP_N={peito:"Peito",costas:"Costas",ombro:"Ombros",biceps:"Bíceps",triceps:"Tríceps",quad:"Pernas (quadríceps)",post:"Glúteos e posterior",pant:"Panturrilhas",core:"Abdômen e core",cond:"Condicionamento",saude:"Saúde do ombro",cardio:"Cardio"};
+function exGroups(){ const g={}; Object.entries(GPOOL).forEach(([k,ks])=>{ if(k!=="esp") g[k]=ks.filter(x=>EX[x]) }); g.cardio=["bike","cardio_casa"].filter(x=>EX[x]); return g }
+function groupOf(key){ const g=exGroups(); for(const k in g) if(g[k].includes(key)) return k; return null }
+function exOkFor(k){ try{ return exAllowed(k,ans()) }catch(e){ return true } }
+const CUS=()=>(PROFILE&&PROFILE.custom)||{days:{},perm:{}};
+function presc(key,base){ const E=EX[key]; if(!E) return null;
+  if(E.m==="simple") return [1,10,10,0]; if(E.m==="time") return [base?base[0]:3,30,45,45]; if(E.m==="dist") return [base?base[0]:3,30,40,60];
+  if(E.m==="tread") return [1,15,15,0];
+  if(base&&["load","bw"].includes(EX[base[4]]&&EX[base[4]].m)) return [base[0],base[1],base[2],base[3]]; return [base?base[0]:3,10,12,60] }
+// Sessão do dia já com as trocas e os extras que a pessoa escolheu
+function daySess(date,L){ const S=SESS[L]; if(!S) return null; const C=CUS(); const d=(C.days||{})[date]||{}; const pm=(C.perm||{})[L]||{};
+  const ex=S.ex.map(e=>{ const orig=e[1]; const nk=(d.swap||{})[orig]||pm[orig]; if(!nk||!EX[nk]||nk===orig) return e.slice();
+    const p=presc(nk,[e[2],e[3],e[4],e[5],orig]); return [e[0],nk,p[0],p[1],p[2],p[3],orig] });
+  (d.add||[]).forEach((k,i)=>{ if(!EX[k]) return; const p=presc(k,null); ex.push(["X"+(i+1),k,p[0],p[1],p[2],p[3],null,true]) });
+  return {...S,ex} }
+function saveCustom(fn){ const P=PROFILE?JSON.parse(JSON.stringify(PROFILE)):{}; const C=P.custom||{days:{},perm:{}}; C.days=C.days||{}; C.perm=C.perm||{}; fn(C); P.custom=C; P.updatedAt=new Date().toISOString(); saveProfile(P) }
+let PK=null; // {mode:"swap"|"add", code, key, orig, scope}
+function pickHtml(){ if(!PK) return ""; const info=dayInfo(sel); const S=daySess(sel,info.s); const inS=new Set(((S&&S.ex)||[]).map(e=>e[1]));
+  const G=exGroups(); const row=k=>`<button class="po" onclick="pickDo('${k}')"><span>${esc(EX[k].n)}</span><small>${GRP_N[groupOf(k)]||""}</small></button>`;
+  let body="";
+  if(PK.mode==="swap"){ const g=groupOf(PK.orig||PK.key); const same=(G[g]||[]).filter(k=>k!==PK.key&&!inS.has(k)&&exOkFor(k));
+    const others=Object.keys(G).filter(x=>x!==g).flatMap(x=>G[x]).filter(k=>!inS.has(k)&&exOkFor(k));
+    body=`<h3>Trocar ${esc(EX[PK.key].n)}</h3><div class="sub">Escolha um substituto. As séries e repetições continuam as mesmas.</div>
+      <div class="sc"><button class="${PK.scope==="dia"?"on":""}" onclick="pickScope('dia')">Só neste dia</button><button class="${PK.scope==="sempre"?"on":""}" onclick="pickScope('sempre')">Em todos os Treinos ${info.s}</button></div>
+      ${PK.orig&&PK.orig!==PK.key?`<button class="po" onclick="pickDo('${PK.orig}')"><span>Voltar ao original: ${esc(EX[PK.orig].n)}</span><small>sugerido</small></button>`:""}
+      ${same.length?`<div class="pg">Mesmo músculo</div>${same.map(row).join("")}`:""}<div class="pg">Outros músculos</div>${others.map(row).join("")}` }
+  else { body=`<h3>Adicionar exercício</h3><div class="sub">Entra no fim do treino de hoje, com 3 séries. Você registra como os outros.</div>`+
+      Object.keys(G).map(g=>{ const l=G[g].filter(k=>!inS.has(k)&&exOkFor(k)); return l.length?`<div class="pg">${GRP_N[g]||g}</div>${l.map(row).join("")}`:"" }).join("") }
+  return `<div class="pk" onclick="if(event.target===this)pickClose()"><div class="pb">${body}<button class="ghost" style="width:100%;margin-top:12px" onclick="pickClose()">Cancelar</button></div></div>` }
+function pickRender(){ let el=document.getElementById("pickwrap"); if(!el){ el=document.createElement("div"); el.id="pickwrap"; document.body.appendChild(el) } el.innerHTML=pickHtml(); document.body.style.overflow=PK?"hidden":"" }
+window.swapOpen=(code)=>{ const info=dayInfo(sel); const S=daySess(sel,info.s); const e=S&&S.ex.find(x=>x[0]===code); if(!e) return; PK={mode:"swap",code,key:e[1],orig:e[6]||e[1],scope:"dia"}; pickRender() };
+window.addOpen=()=>{ PK={mode:"add"}; pickRender() };
+window.pickClose=()=>{ PK=null; pickRender() };
+window.pickScope=s=>{ PK.scope=s; pickRender() };
+window.pickDo=k=>{ const p=PK; const info=dayInfo(sel); const L=info.s; PK=null; pickRender();
+  saveCustom(C=>{ if(p.mode==="add"){ const d=C.days[sel]=C.days[sel]||{}; d.add=[...(d.add||[]),k]; d.savedAt=new Date().toISOString(); return }
+    const d=C.days[sel]=C.days[sel]||{}; d.swap=d.swap||{}; const back=k===p.orig;
+    if(p.scope==="sempre"){ C.perm[L]=C.perm[L]||{}; if(back) delete C.perm[L][p.orig]; else C.perm[L][p.orig]=k; delete d.swap[p.orig] }
+    else { if(back&&!(C.perm[L]||{})[p.orig]) delete d.swap[p.orig]; else d.swap[p.orig]=k }
+    d.savedAt=new Date().toISOString() });
+  delete draft[p.code]; openEx=p.mode==="add"?"X"+(((CUS().days[sel]||{}).add||[]).length):p.code;
+  toast(p.mode==="add"?`${EX[k].n} adicionado ✓`:p.scope==="sempre"?`Trocado em todos os Treinos ${L} ✓`:"Exercício trocado ✓"); render() };
+window.addRemove=(code)=>{ const i=+code.slice(1)-1; saveCustom(C=>{ const d=C.days[sel]; if(d&&d.add){ d.add.splice(i,1); d.savedAt=new Date().toISOString() } }); openEx=null; toast("Exercício removido"); render() };
 /* ===================== AÇÕES ===================== */
 window.go=t=>{tab=t;window.scrollTo(0,0);render()};
 window.toggleEx=c=>{openEx=openEx===c?null:c;render(); if(openEx){const e=document.getElementById("ex-"+c); e&&e.scrollIntoView({behavior:"smooth",block:"start"})}};
@@ -951,7 +1031,7 @@ function renderHome(){
   const spN=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow]||[]).map(i=>(SPORTLIST[i.sport]||{}).n).filter(Boolean).join(" e ")||"Esporte";
   const sess=info.s==="REST"?"Descanso":info.s==="TENNIS"?spN:`Treino ${info.s} · ${PLANINFO.horaTxt||""}`;
   const sessD=info.s==="REST"?"Recuperação: passos, proteína e sono":info.s==="TENNIS"?"Dia de esporte, sem musculação":(SESS[info.s]||{t:""}).t;
-  let tot=0,done=0; if(SESS[info.s]){ const today=setsOn(sel); SESS[info.s].ex.forEach(([code,key,sets])=>{const n=plannedSets(sets,info);tot+=n;done+=Math.min(n,today.filter(x=>x.ex===key).length)}) }
+  let tot=0,done=0; if(SESS[info.s]){ const today=setsOn(sel); daySess(sel,info.s).ex.forEach(([code,key,sets])=>{const n=plannedSets(sets,info);tot+=n;done+=Math.min(n,today.filter(x=>x.ex===key).length)}) }
   const ds=dietStats(sel); const falta=Math.max(0,ds.P.prot-ds.prot); const saved=!!DAYS[sel];
   const tile=(t,n,d)=>`<button class="tile" onclick="go('${t}')"><span class="ic">${ICONS[t]}</span><span><div class="tn">${n}</div><div class="td">${d}</div></span></button>`;
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
@@ -1087,7 +1167,7 @@ function profileCard(){
     <div>${(p.foco||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}${(p.restricoes||[]).filter(x=>x!=="Nenhuma").map(x=>`<span class="chip" style="background:#fdecec;color:#7a1f1f">${esc(x)}</span>`).join("")}</div>
     <button class="big" style="margin:12px 0 0;height:46px" onclick="go('perfil')">Ver meu plano</button><button class="ghost" style="width:100%;margin-top:8px" onclick="startQuiz(true)">Atualização do Questionário</button></div>`;
 }
-window.startQuiz=(edit)=>{ qAns=edit&&PROFILE?JSON.parse(JSON.stringify(PROFILE.answers)):{}; qStep=0; tab="perfil"; quizOpen=true; window.scrollTo(0,0); render(true) };
+window.startQuiz=(edit)=>{ qAns=edit&&PROFILE&&PROFILE.answers?JSON.parse(JSON.stringify(PROFILE.answers)):{}; qStep=0; tab="perfil"; quizOpen=true; window.scrollTo(0,0); render(true) };
 let quizOpen=false, planBusy=false;
 function qValid(q){ const v=qAns[q.k]; if(q.opt) return true;
   if(q.type==="text") return !!(v&&String(v).trim()); if(q.type==="multi") return Array.isArray(v)&&v.length>0;
@@ -1115,7 +1195,7 @@ window.qNext=()=>{ const q=Q[qStep]; const el=document.getElementById("qin"); if
   if(!qValid(q)){ const e=document.getElementById("qerr"); if(e) e.style.display="block"; return }
   if(qStep<Q.length-1){ qStep++; window.scrollTo(0,0); render(true); return }
   if(Array.isArray(qAns.semana)&&qAns.semana.length) qAns.dias=String(qAns.semana.length);
-  quizOpen=false; saveProfile({answers:qAns,updatedAt:new Date().toISOString(),plan:null}); toast("Perfil salvo ✓"); genPlan() };
+  quizOpen=false; saveProfile({answers:qAns,updatedAt:new Date().toISOString(),plan:null,custom:(PROFILE&&PROFILE.custom)||undefined}); toast("Perfil salvo ✓"); genPlan() };
 
 function baseMacros(a){ const c=a.corpo||{}; const kg=num(c.peso)||80, cm=num(c.altura)||175, age=num(c.idade)||35; const male=a.sexo!=="Feminino";
   const bmr=10*kg+6.25*cm-5*age+(male?5:-161); const act={"2":1.4,"3":1.45,"4":1.55,"5":1.6,"6":1.7,"7":1.75}[a.dias]||1.5; const tdee=bmr*act*(a.rotina&&a.rotina.startsWith("Fisicamente")?1.1:1);
@@ -1144,7 +1224,7 @@ async function genPlan(){
 window.genPlan=genPlan;
 function renderPerfil(){
   if(quizOpen) return renderQuiz();
-  if(!PROFILE) { $("#view").innerHTML=`<div class="hero"><div class="kick">Conheça você</div><h1>Seu perfil</h1></div>${profileCard()}`; return }
+  if(!(PROFILE&&PROFILE.answers)) { $("#view").innerHTML=`<div class="hero"><div class="kick">Conheça você</div><h1>Seu perfil</h1></div>${profileCard()}`; return }
   const a=PROFILE.answers, p=planObj();
   const head=`<div class="hero"><div class="kick">Meu plano</div><h1>${esc(a.nome||"")}</h1><div class="sub">${esc(a.objetivo)} · ${esc(a.prazo)} · ${esc(a.dias)} dias por semana</div>
     <div>${(a.foco||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div></div>`;
