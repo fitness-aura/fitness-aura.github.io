@@ -249,6 +249,12 @@ details.card[open] summary::after{content:"−"}
 .ihs .n{flex:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
 .ihs>div>b{display:block;margin-bottom:2px}.ihs>div>span{font-size:13.5px;color:var(--mut);line-height:1.4}
 .ihs .ico{display:inline-flex;vertical-align:middle;background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:2px 6px;margin:0 2px;color:var(--ink);font-weight:700;font-size:13px}
+.wkd{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.wkd span{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:5px 0;text-align:center;font-size:12px;line-height:1.25;min-height:46px}
+.wkd span.hoje{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.wkd em{display:block;font-style:normal;font-size:10.5px;color:var(--mut)}.wkd b{color:var(--gold2);font-size:14px}.wkd i{font-style:normal;display:block}.wkd small{color:var(--mut);font-size:10.5px}
+.wkr{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.wkb{height:34px;padding:0 12px;font-size:13px}.wkb.on{background:var(--gold);border-color:var(--gold);color:#fff}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -423,7 +429,9 @@ Object.assign(EX,{
 });
 const DEF_ANS={sexo:"Masculino",corpo:{idade:"35",altura:"175",peso:"80"},objetivo:"Recomposição",prazo:"3 meses",foco:["Corpo todo por igual"],nivel:"Intermediário",dias:"4",tempo:"60 min",horario:"Manhã",local:"Academia completa",esporte:["Nenhum"],rotina:"Sentado a maior parte do dia",sono:"7 a 8 h",restricoes:["Nenhuma"],naogosta:"",refeicoes:"5",cozinha:"Cozinho em casa",lesoes:["Nenhuma"],suplementos:["Nenhum"]};
 let PLANSIG="", PLANINFO={hora:"", horaTxt:"", person:"", prot:150, rules:[], sportDays:{}};
-const ans=()=>({...DEF_ANS,...((PROFILE&&PROFILE.answers)||{})});
+const DIAS_SEM=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const ans=()=>{ const a={...DEF_ANS,...((PROFILE&&PROFILE.answers)||{})}; if(Array.isArray(a.semana)&&a.semana.length) a.dias=String(a.semana.length); return a };
+const semanaDows=a=>Array.isArray(a.semana)&&a.semana.length?a.semana.map(n=>DIAS_SEM.indexOf(n)).filter(d=>d>=0):null;
 const PROT_T=()=>(MEALS.treino&&MEALS.treino.prot)||150;
 
 function calcMacros(a){
@@ -469,7 +477,7 @@ const TPL={
   6:[["Empurrar A",["peito","ombro","peito","triceps","ombro","core"]],["Puxar A",["costas","costas","biceps","ombro","core","biceps"]],["Pernas A",["quad","post","quad","pant","core"]],["Empurrar B",["peito","peito","ombro","triceps","triceps","core"]],["Puxar B",["costas","costas","biceps","saude","core","biceps"]],["Pernas B",["post","quad","post","pant","core","cond"]]]
 };
 function buildSessions(a){
-  const nd=Math.max(2,Math.min(7,+a.dias||3)); const tpl=(TPL[Math.min(6,nd)]||TPL[3]).map(x=>[x[0],x[1].slice()]);
+  const nd=Math.max(1,Math.min(7,+a.dias||3)); const tpl=(TPL[Math.max(2,Math.min(6,nd))]||TPL[3]).map(x=>[x[0],x[1].slice()]);
   if(nd===7) tpl.push(["Condicionamento e core",["CARDIO","saude","core","core"]]);
   const foco=(a.foco||[]).flatMap(f=>FOCUS[f]||[]);
   const maxEx=({"30 min":4,"45 min":5,"60 min":6,"75 min ou mais":7}[a.tempo]||6)+((a.foco||[]).some(f=>FOCUS[f])&&a.tempo!=="30 min"?1:0);
@@ -522,17 +530,17 @@ function buildSessions(a){
   return {sess:out,order};
 }
 function buildWeek(a,order){
-  const nd=Math.max(2,Math.min(7,+a.dias||3));
   const sportDays={}; (SPORTS.items||[]).forEach(i=>(i.days||[]).forEach(d=>{ (sportDays[d]=sportDays[d]||[]).push(i) }));
-  const pref={2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,5,6],6:[1,2,3,4,5,6],7:[1,2,3,4,5,6,0]}[nd];
-  const fallback=[0,6,4,2,3,5,1];
-  const days=[]; pref.forEach(d=>{ if(sportDays[d]&&nd<7){ const alt=fallback.find(x=>!sportDays[x]&&!days.includes(x)&&!pref.includes(x)); days.push(alt!=null?alt:d) } else days.push(d) });
+  let days=semanaDows(a);
+  if(!days){ const nd=Math.max(2,Math.min(7,+a.dias||3));
+    const pref={2:[1,4],3:[1,3,5],4:[1,2,4,5],5:[1,2,3,5,6],6:[1,2,3,4,5,6],7:[1,2,3,4,5,6,0]}[nd];
+    const fallback=[0,6,4,2,3,5,1]; days=[];
+    pref.forEach(d=>{ if(sportDays[d]&&nd<7){ const alt=fallback.find(x=>!sportDays[x]&&!days.includes(x)&&!pref.includes(x)); days.push(alt!=null?alt:d) } else days.push(d) }) }
   const ordered=[1,2,3,4,5,6,0].filter(d=>days.includes(d));
   const W={}; [0,1,2,3,4,5,6].forEach(d=>W[d]=sportDays[d]?"TENNIS":"REST");
   ordered.forEach((d,i)=>W[d]=order[i%order.length]);
   return {W,sportDays};
 }
-
 /* ---------- dieta ---------- */
 // [nome, prot, carb, gord, kcal por 100 g, tags, unidade (g por unidade), nome da unidade]
 const FOOD={
@@ -761,12 +769,10 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div><div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
-  if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[]; const done=setsOn(sel).filter(s=>s.mode==="sport"||s.mode==="tennis");
-    v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">${its.map(i=>(SPORTLIST[i.sport]||{}).n+" · "+i.min+" min").join(" · ")||"Sem musculação hoje."} Capriche no carboidrato antes, leve água com eletrólitos e registre ao terminar.</div></div>
-    <div class="card"><h3>Registrar</h3>${done.length?done.map(t=>`<div class="hint">${esc(t.name)}: ${t.reps} min${t.kcal?` · ≈ ${t.kcal} kcal`:""} <button class="ghost" style="height:32px;margin-left:8px" onclick="delSet('${t.id}')">Desfazer</button></div>`).join(""):""}
-      ${its.filter(i=>!done.some(d=>d.ex===i.sport)).map(i=>`<button class="big" onclick="logSport('${i.id}')">Registrar ${esc((SPORTLIST[i.sport]||{}).n||"esporte")} (${i.min} min)</button>`).join("")}
-      <button class="ghost" style="width:100%;margin-top:10px" onclick="go('esportes')">Ajustar meus esportes</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div>${weekCard()}<div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[];
+    v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">Sem musculação hoje. Capriche no carboidrato antes, leve água com eletrólitos e registre cada esporte ao terminar.</div></div>
+    ${weekCard()}${sportDayCards()}${uploadCard()}${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -784,9 +790,11 @@ function renderTreino(){
   v.innerHTML=`<div class="hero">${head(info)}<h1>Treino ${info.s}</h1><div class="sub">${esc(S.t)} · ${PLANINFO.horaTxt||""}</div>
     ${info.note?`<div class="hint" style="margin:10px 0 0">${esc(info.note)}</div>`:""}
     <div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:6px">${done} de ${tot} séries · ${pct}%</div></div>
+    ${weekCard()}
     <div class="hint n">Aquecimento (10 min): ${/casa/.test(ans().local||"")?"5 min de polichinelo ou marcha no lugar":"7 min de esteira ou bicicleta leve"}, mobilidade de quadril e ombro e 1 a 2 séries leves do primeiro exercício.</div>
     ${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
+    ${sportDayCards()}
     ${uploadCard()}${baseLink("treino")}`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
@@ -965,7 +973,8 @@ function renderEsportes(){
   $("#view").innerHTML=html;
 }
 function spForm(){ const d=spDraft; const S=SPORTLIST[d.sport]; const k=sessKcal(d);
-  return `<div style="margin-top:4px"><div style="font-weight:800;font-size:17px;margin-bottom:8px">${S.e} ${esc(S.n)}</div>
+  return `<div style="margin-top:4px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="font-weight:800;font-size:17px;flex:1">${S.e} ${esc(S.n)}</div>${spEdit==="new"?`<button class="ghost" style="height:34px;padding:0 12px" onclick="spEdit=null;render(true)">‹ Trocar esporte</button>`:""}</div>
+   ${spEdit!=="new"?`<label class="sub">Esporte</label><div class="opts grid" style="margin:6px 0 12px">${Object.entries(SPORTLIST).map(([id,X])=>`<button class="opt ${d.sport===id?"on":""}" onclick="spDraft.sport='${id}';spDraft.int=0;render(true)">${X.e} ${esc(X.n)}</button>`).join("")}</div>`:""}
    <label class="sub">Intensidade</label><div class="opts" style="margin:6px 0 12px">${S.i.map((x,j)=>`<button class="opt ${d.int===j?"on":""}" onclick="spSet('int',${j})">${esc(x[0])}<small>MET ${String(x[1]).replace(".",",")}</small></button>`).join("")}</div>
    <label class="sub">Em que dias você pratica?</label><div class="dw">${DSHORT.map((n,j)=>`<button class="${d.days.includes(j)?"on":""}" onclick="spDay(${j})">${n}</button>`).join("")}</div>
    <div class="stepper" style="margin-top:12px"><label>Duração de cada sessão (min)</label><div class="st"><button onclick="spSet('min',Math.max(10,spDraft.min-15))">−</button><input inputmode="numeric" value="${d.min}" onchange="spSet('min',Math.max(5,num(this.value)))"><button onclick="spSet('min',spDraft.min+15)">+</button></div></div>
@@ -991,6 +1000,7 @@ const Q=[
  {k:"foco",t:"Que partes do corpo quer priorizar?",h:"Escolha até 3.",type:"multi",max:3,grid:true,o:["Peitoral","Costas","Ombros","Braços","Abdômen e cintura","Glúteos","Pernas","Panturrilhas","Corpo todo por igual"]},
  {k:"nivel",t:"Sua experiência com musculação",type:"one",o:[["Iniciante","Nunca treinei ou estou voltando"],["Intermediário","Treino há 6 meses a 2 anos"],["Avançado","Treino há mais de 2 anos"]]},
  {k:"dias",t:"Quantos dias por semana pode treinar?",type:"one",grid:true,o:["2","3","4","5","6","7"]},
+ {k:"semana",t:"Em quais dias quer fazer musculação?",h:"Os outros dias ficam para descanso ou para o seu esporte. Dá para mudar depois na aba Treino.",type:"multi",grid:true,o:["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"]},
  {k:"tempo",t:"Quanto tempo por treino?",type:"one",grid:true,o:["30 min","45 min","60 min","75 min ou mais"]},
  {k:"horario",t:"Em que horário costuma treinar?",type:"one",grid:true,o:["Madrugada (5h a 7h)","Manhã","Almoço","Tarde","Noite"]},
  {k:"local",t:"Onde você treina?",type:"one",o:["Academia completa","Academia do prédio ou condomínio","Em casa, com halteres","Em casa, sem equipamento"]},
@@ -1042,6 +1052,7 @@ window.qBack=()=>{ if(qStep===0){ quizOpen=false; go('home'); return } qStep--; 
 window.qNext=()=>{ const q=Q[qStep]; const el=document.getElementById("qin"); if(el) qAns[q.k]=el.value;
   if(!qValid(q)){ const e=document.getElementById("qerr"); if(e) e.style.display="block"; return }
   if(qStep<Q.length-1){ qStep++; window.scrollTo(0,0); render(true); return }
+  if(Array.isArray(qAns.semana)&&qAns.semana.length) qAns.dias=String(qAns.semana.length);
   quizOpen=false; saveProfile({answers:qAns,updatedAt:new Date().toISOString(),plan:null}); toast("Perfil salvo ✓"); genPlan() };
 
 function baseMacros(a){ const c=a.corpo||{}; const kg=num(c.peso)||80, cm=num(c.altura)||175, age=num(c.idade)||35; const male=a.sexo!=="Feminino";
@@ -1473,6 +1484,49 @@ window.baseOpen=k=>{ const B=BASE[k]; const h=document.getElementById("instHelp"
 
 // Link de convite: fitness-aura.github.io/?instalar abre o passo a passo de instalação na hora
 if(/[?&#]instalar/.test(location.href)){ window.addEventListener("load",async()=>{ if(isStandalone()) return; if(!isIOS()&&!inApp()) await waitPrompt(4000); if(deferredInstall) instQuick(); else instOpen() }) }
+/* ===================== MINHA SEMANA (aba Treino) + ESPORTES DO DIA ===================== */
+let weekOpen=false;
+function weekCard(){
+  const a=ans(); const DS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const lab=d=>{ const s=WEEK[d]; const sp=(PLANINFO.sportDays&&PLANINFO.sportDays[d])||[]; const spe=sp.map(i=>(SPORTLIST[i.sport]||{}).e||"").join("");
+    return SESS[s]?`<b>${s}</b>${spe?`<i>${spe}</i>`:""}`:sp.length?`<i>${spe}</i>`:`<small>desc.</small>` };
+  const days=[1,2,3,4,5,6,0];
+  const rows=days.map(d=>{ const s=WEEK[d]; const sp=(PLANINFO.sportDays&&PLANINFO.sportDays[d])||[];
+    return `<div class="wkr"><b style="width:74px">${DIAS_SEM[d]}</b><span style="flex:1;color:var(--mut)">${SESS[s]?`Treino ${s} · ${esc(SESS[s].t)}`:"Descanso"}${sp.length?` · ${sp.map(i=>esc((SPORTLIST[i.sport]||{}).n||"")).join(" e ")}`:""}</span>
+      <button class="ghost wkb ${SESS[s]?"on":""}" onclick="toggleTrainDay(${d})">${SESS[s]?"Treino":"Folga"}</button></div>` }).join("");
+  return `<div class="card wk"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="kick">Minha semana</div>
+      <div class="wkd">${days.map(d=>`<span class="${d===fromIso(sel).getDay()?"hoje":""}"><em>${DS[d]}</em>${lab(d)}</span>`).join("")}</div></div></div>
+    ${weekOpen?`<div class="sub" style="margin:10px 0 6px">Toque para trocar entre treino e folga. O app redistribui os treinos A, B, C… nos dias escolhidos.</div>${rows}
+      <div class="row" style="margin-top:10px"><button class="ghost" style="flex:1" onclick="go('esportes')">Esportes da semana</button><button class="big" style="flex:1;margin:0;height:44px" onclick="weekOpen=false;render(true)">Pronto</button></div>`
+      :`<button class="ghost" style="width:100%;margin-top:10px;height:40px" onclick="weekOpen=true;render(true)">Editar dias de treino e descanso</button>`}</div>`;
+}
+window.toggleTrainDay=d=>{
+  if(!PROFILE||!PROFILE.answers){ toast("Responda o questionário Conheça você primeiro",true); return }
+  const cur=[0,1,2,3,4,5,6].filter(x=>SESS[WEEK[x]]); let nx=cur.includes(d)?cur.filter(x=>x!==d):[...cur,d];
+  if(!nx.length){ toast("Deixe pelo menos 1 dia de treino",true); return }
+  const P=JSON.parse(JSON.stringify(PROFILE)); P.answers.semana=[1,2,3,4,5,6,0].filter(x=>nx.includes(x)).map(x=>DIAS_SEM[x]); P.answers.dias=String(nx.length);
+  P.updatedAt=new Date().toISOString(); saveProfile(P); toast(`${nx.length} dia${nx.length>1?"s":""} de treino por semana ✓`);
+};
+// cartões dos esportes do dia, depois da musculação
+const spMinDraft={};
+function sportDayCards(){
+  const dow=fromIso(sel).getDay(); const its=(PLANINFO.sportDays&&PLANINFO.sportDays[dow])||[];
+  const logged=setsOn(sel).filter(s=>s.mode==="sport"||s.mode==="tennis");
+  const extra=logged.filter(l=>!its.some(i=>i.sport===l.ex));
+  if(!its.length&&!logged.length) return `<button class="ghost" style="width:100%;margin:2px 0 12px;height:42px" onclick="go('esportes')">+ Fez algum esporte hoje? Cadastre em Esportes</button>`;
+  const card=i=>{ const S=SPORTLIST[i.sport]||{n:i.sport,e:"",i:[["",5]]}; const done=logged.find(l=>l.ex===i.sport); const m=spMinDraft[i.id]??i.min; const k=sessKcal(i,m);
+    return `<div class="ex done-${done?1:0}" style="padding:14px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">${S.e||"🏅"}</span><div style="flex:1"><div class="exn">${esc(S.n)}</div><div class="ext">${esc((S.i[i.int||0]||[""])[0])} · ≈ ${k.gross} kcal</div></div></div>
+      ${done?`<div class="hint" style="margin:10px 0 0">Registrado: ${done.reps} min${done.kcal?` · ≈ ${done.kcal} kcal`:""} <button class="ghost" style="height:32px;margin-left:8px" onclick="delSet('${done.id}')">Desfazer</button></div>`
+      :`<div class="stepper" style="margin-top:10px"><label>Minutos hoje</label><div class="st"><button onclick="spMin('${i.id}',-15)">−</button><input inputmode="numeric" value="${m}" onchange="spMinDraft['${i.id}']=Math.max(5,num(this.value));render(true)"><button onclick="spMin('${i.id}',15)">+</button></div></div>
+        <button class="big" style="height:46px" onclick="logSportMin('${i.id}')">Registrar ${esc(S.n)}</button>`}</div>` };
+  return `<div class="kick" style="margin:16px 0 8px">Esportes de hoje</div>${its.map(card).join("")}
+    ${extra.map(l=>`<div class="hint">${esc(l.name)}: ${l.reps} min${l.kcal?` · ≈ ${l.kcal} kcal`:""} <button class="ghost" style="height:32px;margin-left:8px" onclick="delSet('${l.id}')">Desfazer</button></div>`).join("")}
+    <button class="ghost" style="width:100%;margin:2px 0 12px;height:42px" onclick="go('esportes')">+ Outro esporte ou ajustar dias</button>`;
+}
+window.spMin=(id,d)=>{ const it=(SPORTS.items||[]).find(i=>i.id===id); spMinDraft[id]=Math.max(5,(spMinDraft[id]??(it?it.min:60))+d); render(true) };
+window.logSportMin=async id=>{ const it=(SPORTS.items||[]).find(i=>i.id===id); if(!it) return; const min=spMinDraft[id]??it.min; const k=sessKcal(it,min); const info=dayInfo(sel);
+  await addSet({date:sel,day:info.day,session:info.s,code:"SP",ex:it.sport,name:(SPORTLIST[it.sport]||{}).n||it.sport,set:1,w:0,reps:min,rir:null,mode:"sport",kcal:k.gross,kcalNet:k.net}); delete spMinDraft[id]; toast("Registrado ✓") };
+
 /* ===================== NAV ===================== */
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
 function shift(n){const d=fromIso(sel);d.setDate(d.getDate()+n);sel=iso(d);openEx=null;for(const k in draft)delete draft[k];render()}
