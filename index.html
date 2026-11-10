@@ -769,10 +769,10 @@ function head(info){
 }
 function renderTreino(){
   const info=dayInfo(sel); const v=$("#view");
-  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div>${weekCard()}<div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
+  if(info.s==="REST"){ v.innerHTML=`<div class="hero">${head(info)}<h1>Descanso</h1><div class="sub">Sem treino hoje. Bata 8 mil passos, a proteína (${PROT_T()} g) e durma de 7 a 8 horas.</div></div>${weekCard()}${orphanCard(sel,null)}<div class="card"><button class="big" onclick="go('dia')">Registrar fim do dia</button></div>${uploadCard()}${baseLink("treino")}`; return }
   if(info.s==="TENNIS"){ const its=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow])||[];
     v.innerHTML=`<div class="hero">${head(info)}<h1>Dia de esporte</h1><div class="sub">Sem musculação hoje. Capriche no carboidrato antes, leve água com eletrólitos e registre cada esporte ao terminar.</div></div>
-    ${weekCard()}${sportDayCards()}${uploadCard()}${baseLink("treino")}`; return }
+    ${weekCard()}${orphanCard(sel,null)}${sportDayCards()}${uploadCard()}${baseLink("treino")}`; return }
   const S=SESS[info.s]; const today=setsOn(sel);
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
@@ -792,10 +792,17 @@ function renderTreino(){
     <div class="bar"><i style="width:${pct}%"></i></div><div class="sub" style="margin-top:6px">${done} de ${tot} séries · ${pct}%</div></div>
     ${weekCard()}
     <div class="hint n">Aquecimento (10 min): ${/casa/.test(ans().local||"")?"5 min de polichinelo ou marcha no lugar":"7 min de esteira ou bicicleta leve"}, mobilidade de quadril e ombro e 1 a 2 séries leves do primeiro exercício.</div>
-    ${cards}
+    ${orphanCard(sel,S)}${cards}
     ${pct===100?`<div class="card"><h3>Treino completo 💪</h3><div class="sub">Registre peso, sono e checklist no Fim do dia.</div><button class="big" onclick="go('dia')">Ir para Fim do dia</button></div>`:""}
     ${sportDayCards()}
     ${uploadCard()}${baseLink("treino")}`;
+}
+function orphanCard(date,S){
+  const plan=new Set(((S&&S.ex)||[]).map(e=>e[0]+"|"+e[1]));
+  const extra=setsOn(date).filter(s=>!plan.has(s.code+"|"+s.ex)); if(!extra.length) return "";
+  const g={}; extra.forEach(s=>{ (g[s.ex]=g[s.ex]||{n:s.name||(EX[s.ex]&&EX[s.ex].n)||s.ex,m:s.mode,l:[]}).l.push(s) });
+  const rows=Object.values(g).map(x=>`<div class="exh" style="cursor:default"><span class="code">✓</span><span><div class="exn">${esc(x.n)}</div><div class="ext">${x.l.map(s=>x.m==="tread"?`${s.reps} min`:x.m==="time"?`${s.reps}s`:x.m==="bw"?`${s.reps} reps`:`${fmtKg(s.w)}kg × ${s.reps}`).join(" · ")}</div></span><span class="dots">${x.l.map(()=>'<i class="on"></i>').join("")}</span></div>`).join("");
+  return `<div class="card"><h3>Séries registradas neste dia</h3><div class="sub" style="margin-bottom:8px">Exercícios que você já fez e registrou, mesmo que o plano tenha mudado depois. Nada foi perdido.</div>${rows}</div>`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
