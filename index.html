@@ -255,8 +255,39 @@ details.card[open] summary::after{content:"−"}
 .wkd em{display:block;font-style:normal;font-size:10.5px;color:var(--mut)}.wkd b{color:var(--gold2);font-size:14px}.wkd i{font-style:normal;display:block}.wkd small{color:var(--mut);font-size:10.5px}
 .wkr{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
 .wkb{height:34px;padding:0 12px;font-size:13px}.wkb.on{background:var(--gold);border-color:var(--gold);color:#fff}
+
+/* ===== Modo noturno ===== */
+.topl{display:flex;align-items:center;gap:10px}
+.thm{background:var(--card);color:var(--gold);width:36px;height:36px;border-radius:10px;font-size:17px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:0}
+html.dark{color-scheme:only dark;--bg:#14120f;--card:#1e1b17;--card2:#27231d;--line:#3a3329;--ink:#efe9de;--mut:#a59e90;--gold:#d4a64a;--gold2:#b98a34;--ok:#3fae72;--bad:#e05a4b}
+html.dark .hero,html.dark .gcard,html.dark .tile{background:linear-gradient(135deg,#221e19,#1b1814)}
+html.dark .todaycard,html.dark .prof{background:linear-gradient(135deg,#2a2318,#1e1b17)}
+html.dark .pill,html.dark .bar,html.dark .dots i,html.dark .blocks i{background:#332d24}
+html.dark .pill{color:#cfc7b8}
+html.dark .pill.g{background:rgba(212,166,74,.18);color:var(--gold)}
+html.dark .cues,html.dark .meal .md,html.dark .entry .it{color:#c2bbad}
+html.dark .hint{color:#e2c27e;background:rgba(212,166,74,.1)}
+html.dark .hint.n{background:var(--card2);color:#c2bbad}
+html.dark .timer .box{background:#2a2318}
+html.dark .timer.end .box,html.dark .meal.on,html.dark .miss.ok{background:#16261c}
+html.dark .banner{background:#2b2016;border-color:#6b4a2a;color:#e8c39a}
+html.dark .meal .ck{border-color:#5a5246}
+html.dark .mac div{background:var(--card2)}
+html.dark .miss{background:linear-gradient(135deg,#2a2318,#211d17)}
+html.dark .miss .sub{color:#cdbf9c!important}
+html.dark .verd.pode{background:#16261c;color:#bfe3cc}.dark .verd.pode .vt{color:#5ccf8f}
+html.dark .verd.ajuste{background:#2a2318;color:#e8d7b0}
+html.dark .verd.nao_pode{background:#2c1616;color:#f1b8b8}html.dark .verd.nao_pode .vt{color:#ff7b7b}
+html.dark [style*="background:#fbf4e4"]{background:#2a2318!important}
+html.dark [style*="background:#ede6d9"]{background:#332d24!important}
+html.dark [style*="background:#fdecec"]{background:#2c1616!important;color:#f1b8b8!important}
+html.dark [style*="color:#1d2433"]{color:var(--ink)!important}
+html.dark svg text[fill="#1d2433"]{fill:var(--ink)}
+html.dark .pic{background:#f4f1ea}
+html.dark .tabs{background:rgba(20,18,15,.96)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>try{if(localStorage.getItem("aura_tema")==="escuro")document.documentElement.classList.add("dark")}catch(e){}</script>
 </head>
 <body>
 <div id="gate"></div>
@@ -265,7 +296,7 @@ details.card[open] summary::after{content:"−"}
 <div class="toast" id="toast"></div>
 <div class="wrap">
   <div class="top">
-    <div class="brand" onclick="go('home')" style="cursor:pointer">A U R A</div>
+    <div class="topl"><button class="thm" id="thmB" onclick="toggleTheme()" aria-label="Modo noturno">☾</button><div class="brand" onclick="go('home')" style="cursor:pointer">A U R A</div></div>
     <div class="navd">
       <button id="prevD" aria-label="Dia anterior">‹</button>
       <button class="today" id="todayB">Hoje</button>
@@ -669,7 +700,13 @@ function applyPlan(){
     person:`${a.sexo==="Feminino"?"uma mulher":"um homem"} de ${c.idade||"?"} anos, ${c.altura||"?"} cm e ${c.peso||"?"} kg, objetivo ${String(a.objetivo||"").toLowerCase()}, treinando ${a.dias} vezes por semana ${h.lbl}${(a.restricoes||[]).filter(x=>x!=="Nenhuma").length?", restrições: "+a.restricoes.filter(x=>x!=="Nenhuma").join(", ").toLowerCase():""}${a.naogosta?", não come: "+a.naogosta:""}`};
 }
 
+
 /* ===================== ESTADO / DADOS ===================== */
+/* modo noturno */
+function themeSync(){ const d=document.documentElement.classList.contains("dark"); const b=document.getElementById("thmB"); if(b){ b.textContent=d?"☀":"☾"; b.setAttribute("aria-label",d?"Modo claro":"Modo noturno") }
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content",d?"#14120f":"#f6f2ea") }
+window.toggleTheme=()=>{ const d=document.documentElement.classList.toggle("dark"); try{localStorage.setItem("aura_tema",d?"escuro":"claro")}catch(e){} themeSync() };
+document.addEventListener("DOMContentLoaded",themeSync); setTimeout(themeSync,0);
 let sel=iso(new Date()); let tab="home"; let openEx=null;
 let SETS=[]; let DAYS={}; let DIET={}; let PROFILE=null; let SPORTS={items:[]}; let db=null; let mode="loading";
 const draft={}; // por exercício: {w,r,rir}
@@ -914,7 +951,7 @@ function renderHome(){
   const spN=(PLANINFO.sportDays&&PLANINFO.sportDays[info.dow]||[]).map(i=>(SPORTLIST[i.sport]||{}).n).filter(Boolean).join(" e ")||"Esporte";
   const sess=info.s==="REST"?"Descanso":info.s==="TENNIS"?spN:`Treino ${info.s} · ${PLANINFO.horaTxt||""}`;
   const sessD=info.s==="REST"?"Recuperação: passos, proteína e sono":info.s==="TENNIS"?"Dia de esporte, sem musculação":(SESS[info.s]||{t:""}).t;
-  let tot=0,done=0; if(SESS[info.s]){ const today=setsOn(sel); SESS[info.s].ex.forEach(([code,key,sets])=>{const n=plannedSets(sets,info);tot+=n;done+=Math.min(n,today.filter(x=>x.code===code&&x.ex===key).length)}) }
+  let tot=0,done=0; if(SESS[info.s]){ const today=setsOn(sel); SESS[info.s].ex.forEach(([code,key,sets])=>{const n=plannedSets(sets,info);tot+=n;done+=Math.min(n,today.filter(x=>x.ex===key).length)}) }
   const ds=dietStats(sel); const falta=Math.max(0,ds.P.prot-ds.prot); const saved=!!DAYS[sel];
   const tile=(t,n,d)=>`<button class="tile" onclick="go('${t}')"><span class="ic">${ICONS[t]}</span><span><div class="tn">${n}</div><div class="td">${d}</div></span></button>`;
   const inst=!isStandalone()?`<div class="hint" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="flex:1"><b>Instale a Aura no celular</b><br>Abre em tela cheia e funciona até sem internet.</span><button class="big" style="width:auto;margin:0;height:44px;padding:0 16px;font-size:14px" onclick="installAura()">Instalar</button></div>`:"";
