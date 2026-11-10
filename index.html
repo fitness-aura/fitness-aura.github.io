@@ -795,7 +795,7 @@ function renderTreino(){
   let tot=0,done=0;
   const cards=S.ex.map(([code,key,sets,rmin,rmax,rs])=>{
     const E=EX[key]; const n=plannedSets(sets,info); tot+=n;
-    const mine=today.filter(s=>s.code===code&&s.ex===key); const k=Math.min(mine.length,n); done+=k;
+    const mine=today.filter(s=>s.ex===key); const k=Math.min(mine.length,n); done+=k;
     const isOpen=openEx===code; const fin=mine.length>=n;
     const tgt = E.m==="tread"? `${treadBlocks(info.s,info).reduce((a,b)=>a+b[0],0)} min · protocolo inclinado` : E.m==="simple"? `${rmin} min` :
       `${n} × ${E.m==="time"?(rmin===rmax?rmin+" s":rmin+" a "+rmax+" s"):E.m==="dist"?rmin+" a "+rmax+" m":(key==="flexao"?"máx −2":(rmin===rmax?rmin:rmin+" a "+rmax))}${E.unit?" "+E.unit:""}${rs?" · "+rs+" s":""}`;
@@ -816,11 +816,11 @@ function renderTreino(){
     ${uploadCard()}${baseLink("treino")}`;
 }
 function orphanCard(date,S){
-  const plan=new Set(((S&&S.ex)||[]).map(e=>e[0]+"|"+e[1]));
-  const extra=setsOn(date).filter(s=>!plan.has(s.code+"|"+s.ex)); if(!extra.length) return "";
+  const plan=new Set(((S&&S.ex)||[]).map(e=>e[1]));
+  const extra=setsOn(date).filter(s=>!plan.has(s.ex)); if(!extra.length) return "";
   const g={}; extra.forEach(s=>{ (g[s.ex]=g[s.ex]||{n:s.name||(EX[s.ex]&&EX[s.ex].n)||s.ex,m:s.mode,l:[]}).l.push(s) });
   const rows=Object.values(g).map(x=>`<div class="exh" style="cursor:default"><span class="code">✓</span><span><div class="exn">${esc(x.n)}</div><div class="ext">${x.l.map(s=>x.m==="tread"?`${s.reps} min`:x.m==="time"?`${s.reps}s`:x.m==="bw"?`${s.reps} reps`:`${fmtKg(s.w)}kg × ${s.reps}`).join(" · ")}</div></span><span class="dots">${x.l.map(()=>'<i class="on"></i>').join("")}</span></div>`).join("");
-  return `<div class="card"><h3>Séries registradas neste dia</h3><div class="sub" style="margin-bottom:8px">Exercícios que você já fez e registrou, mesmo que o plano tenha mudado depois. Nada foi perdido.</div>${rows}</div>`;
+  return `<div class="card"><h3>Outros exercícios feitos neste dia</h3><div class="sub" style="margin-bottom:8px">Você registrou estes exercícios, mas eles não estão no treino atual (o plano foi refeito depois). Continuam salvos.</div>${rows}</div>`;
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
@@ -854,7 +854,7 @@ const num=v=>{const x=parseFloat(String(v).replace(",","."));return isNaN(x)?0:x
 window.setD=(c,f,v)=>{draft[c][f]=f==="rir"?v:num(v);render()};
 window.adjD=(c,f,d)=>{draft[c][f]=Math.max(0,Math.round((num(draft[c][f])+d)*10)/10);render()};
 window.adj=(id,d)=>{const e=document.getElementById(id);e.value=Math.max(0,num(e.value)+d)};
-window.logSet=async(code,key,rs,n)=>{ audioInit(); keepAwake(); const dr=draft[code]; const info=dayInfo(sel); const mine=setsOn(sel).filter(s=>s.code===code&&s.ex===key);
+window.logSet=async(code,key,rs,n)=>{ audioInit(); keepAwake(); const dr=draft[code]; const info=dayInfo(sel); const mine=setsOn(sel).filter(s=>s.ex===key);
   const o={date:sel,day:info.day,session:info.s,code,ex:key,name:EX[key].n,set:mine.length+1,w:EX[key].m==="load"||EX[key].m==="dist"?num(dr.w):0,reps:num(dr.r),rir:EX[key].m==="time"||EX[key].m==="dist"?null:dr.rir,mode:EX[key].m};
   await addSet(o); toast(`Série ${o.set} registrada ✓`); startRest(rs, mine.length+1>=n?"Próximo exercício":`${EX[key].n} · série ${mine.length+2}`) };
 window.logCardio=async(code,key,min)=>{const info=dayInfo(sel); await addSet({date:sel,day:info.day,session:info.s,code,ex:key,name:EX[key].n,set:1,w:0,reps:min,rir:null,mode:EX[key].m}); toast("Registrado ✓")};
