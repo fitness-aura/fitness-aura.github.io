@@ -481,7 +481,7 @@ function localParse(text){
 const dayType=info=>info.s==="TENNIS"?"tenis":info.s==="REST"?"descanso":"treino";
 
 // Ilustrações animadas (WebP); as demais seguem como imagem fixa
-const ANIM=new Set(["afundo_bulgaro","agachamento_goblet","crossover","crucifixo","desenvolvimento","elevacao_lateral","farmer_walk","flexao","lenhador","pallof","panturrilha","passada_lateral","pullover","puxada_frontal","remada_unilateral","rosca_direta","rosca_martelo","rotacao_externa","squeeze_press","step_up","stiff","supino_inclinado","supino_reto","triceps_corda","triceps_testa"]);
+const ANIM=new Set(["agacho","ponte","superman","tri_banco","pike","cardio_casa","hip_thrust","abducao","coice","sup_maq","bike","afundo_bulgaro","agachamento_goblet","crossover","crucifixo","desenvolvimento","elevacao_lateral","farmer_walk","flexao","lenhador","pallof","panturrilha","passada_lateral","pullover","puxada_frontal","remada_unilateral","rosca_direta","rosca_martelo","rotacao_externa","squeeze_press","step_up","stiff","supino_inclinado","supino_reto","triceps_corda","triceps_testa"]);
 /* ===================== PLANO PERSONALIZADO (gerado das respostas do questionário) ===================== */
 // Exercícios extras para quem treina em casa sem equipamento
 Object.assign(EX,{
@@ -790,6 +790,8 @@ function applyPlan(){
 }
 
 /* ===================== ESTADO / DADOS ===================== */
+/* figuras dos exercícios novos */
+["agacho","ponte","superman","tri_banco","pike","cardio_casa","hip_thrust","abducao","coice","sup_maq","bike"].forEach(k=>{ if(EX[k]&&!EX[k].img) EX[k].img=k });
 /* modo noturno */
 function themeSync(){ const d=document.documentElement.classList.contains("dark"); const b=document.getElementById("thmB"); if(b){ b.textContent=d?"☀":"☾"; b.setAttribute("aria-label",d?"Modo claro":"Modo noturno") }
   const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content",d?"#14120f":"#f6f2ea") }
