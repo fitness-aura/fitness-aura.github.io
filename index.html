@@ -950,7 +950,7 @@ function orphanCard(date,S){
 }
 function exBody(code,key,n,rmin,rmax,rs,info,mine){
   const E=EX[key];
-  const pic=E.img?`<div class="pic"><img src="img/${E.img}.${ANIM.has(E.img)?"webp":"jpg"}" alt="${esc(E.n)}" loading="lazy"></div>`:"";
+  const pic=E.img?`<div class="pic"><img src="img/${E.img}${ANIM.has(E.img)?(ans().sexo==="Feminino"?"_f":"_m")+".webp":".jpg"}" alt="${esc(E.n)}" loading="lazy"></div>`:"";
   const cues=`<ul class="cues">${E.c.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`;
   const logs=mine.length?`<div class="logs">${mine.map((s,i)=>`<div class="log"><b>Série ${i+1}</b><span>${E.m==="load"?`${fmtKg(s.w)} kg × ${s.reps}`:E.m==="time"?`${s.reps} s`:E.m==="dist"?`${fmtKg(s.w)} kg × ${s.reps} m`:E.m==="tread"||E.m==="simple"?`${s.reps} min`:`${s.reps} reps`}${s.rir!=null&&s.rir!==""&&E.m!=="tread"&&E.m!=="simple"?` · RIR ${s.rir}`:""}</span><button class="x" onclick="delSet('${s.id}')" aria-label="Apagar">×</button></div>`).join("")}</div>`:"";
   if(E.m==="tread"){
