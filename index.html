@@ -322,6 +322,8 @@ html.dark .tabs{background:rgba(20,18,15,.96)}
 .fl .fm li:before{content:"~";position:absolute;left:4px;color:var(--gold2);font-weight:700}
 .fl .fn li:before{content:"✕";position:absolute;left:2px;color:#c0392b;font-weight:700}
 .fl .fg{font-size:12px;color:var(--mut);font-weight:700;margin:8px 0 2px}
+
+.opts.grid>*:last-child:nth-child(odd){grid-column:1/-1}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>try{if(localStorage.getItem("aura_tema")==="escuro")document.documentElement.classList.add("dark")}catch(e){}</script>
@@ -512,7 +514,15 @@ function enrich(a){
   const cond=/condicionamento|f[oô]lego|velocidade|agilidade|resist[eê]ncia|explos|cardio/i.test(meta);
   let kadj=1; if(/perder\s*\d|emagrec|secar|barriga/i.test(meta)&&a.objetivo!=="Perder gordura"&&a.objetivo!=="Hipertrofia") kadj=0.96;
   if(/ganhar\s*\d+\s*kg|ganhar massa|ganho de massa|hipertrof|crescer/i.test(meta)&&a.objetivo!=="Hipertrofia") kadj=1.04;
-  return {...a,foco,_metaFoco:add,_esp:esp,_cond:cond,_kadj:kadj,_sonoCurto:a.sono==="Menos de 6 h",_whey:(a.suplementos||[]).includes("Whey")};
+  const out={...a,foco,_metaFoco:add,_esp:esp,_cond:cond,_kadj:kadj,_sonoCurto:a.sono==="Menos de 6 h",_whey:(a.suplementos||[]).includes("Whey")};
+  if(!/^[3-6]$/.test(String(a.refeicoes||""))){  // "Aceitar sugestão do app": o app escolhe pelas calorias, objetivo e rotina
+    const kc=calcMacros({...out,refeicoes:"4"}).kcal;
+    let n=kc<1700?3:kc<2600?4:kc<3200?5:6;
+    if(a.objetivo==="Hipertrofia") n=Math.max(n,5);
+    if(a.cozinha==="Como fora quase sempre") n=Math.min(n,4);
+    out.refeicoes=String(n); out._refSug=true;
+  }
+  return out;
 }
 const semanaDows=a=>Array.isArray(a.semana)&&a.semana.length?a.semana.map(n=>DIAS_SEM.indexOf(n)).filter(d=>d>=0):null;
 const PROT_T=()=>(MEALS.treino&&MEALS.treino.prot)||150;
@@ -712,6 +722,7 @@ function buildRules(a){
   if(r.includes("Vegano")) out.push("Vegano: combine leguminosas (feijão, grão-de-bico, lentilha) com tofu e proteína vegetal em pó para fechar a proteína.");
   else if(r.includes("Vegetariano")) out.push("Vegetariano: ovos, laticínios, tofu e leguminosas garantem a proteína.");
   if(r.includes("Alergia alimentar")||r.includes("Outra")) out.push("Você marcou alergia ou outra restrição: confira cada alimento do cardápio e ajuste com um nutricionista.");
+  if(a._refSug) out.unshift(`Refeições: o app sugeriu ${a.refeicoes} por dia, pelo seu total de calorias${a.objetivo==="Hipertrofia"?" e pelo objetivo de ganhar massa":""}${a.cozinha==="Como fora quase sempre"?" e por você comer fora com frequência":""}. Dá para mudar em "Atualização do Questionário".`);
   const meta=String(a.meta||"").trim(); if(meta) out.unshift(`Sua meta: "${meta.slice(0,140)}". ${a._metaFoco&&a._metaFoco.length?"O treino passou a priorizar "+a._metaFoco.join(", ").toLowerCase()+". ":""}${a._kadj<1?"As calorias têm um corte leve a mais para secar. ":a._kadj>1?"As calorias têm um pouco a mais para ganhar massa. ":""}${a._cond?"Entrou cardio em todos os treinos para o condicionamento.":""}`.trim());
   if(a.cozinha==="Como fora quase sempre") out.push("Você come fora quase sempre: monte o prato como no cardápio. Peça proteína grelhada no tamanho da palma da mão (ou 2), carboidrato do tamanho de 1 punho e metade do prato com salada. Evite fritura e molho cremoso.");
   else if(a.cozinha&&a.cozinha.startsWith("Às vezes")) out.push("Nos dias em que pedir comida: proteína grelhada, arroz e feijão ou batata, salada. Nos dias em casa, cozinhe proteína para 2 dias.");
@@ -1207,7 +1218,7 @@ const Q=[
  {k:"sono",t:"Quantas horas dorme por noite?",type:"one",grid:true,o:["Menos de 6 h","6 a 7 h","7 a 8 h","Mais de 8 h"]},
  {k:"restricoes",t:"Tem alguma restrição alimentar?",h:"Marque tudo o que se aplica.",type:"multi",grid:true,o:["Nenhuma","Sem glúten","Sem lactose","Vegetariano","Vegano","Não como frutas","Não como peixe","Alergia alimentar","Outra"]},
  {k:"naogosta",t:"Alimentos que você não come de jeito nenhum",h:"Opcional. Ex.: fígado, brócolis, ovo.",type:"text",ph:"Escreva aqui",opt:true},
- {k:"refeicoes",t:"Quantas refeições prefere fazer por dia?",type:"one",grid:true,o:["3","4","5","6"]},
+ {k:"refeicoes",t:"Quantas refeições prefere fazer por dia?",h:"Se não souber, deixe o Aura escolher pelo seu objetivo e rotina.",type:"one",grid:true,o:["3","4","5","6","Aceitar sugestão do app"]},
  {k:"cozinha",t:"Quem prepara sua comida?",type:"one",o:["Cozinho em casa","Às vezes cozinho, às vezes peço","Como fora quase sempre"]},
  {k:"lesoes",t:"Tem alguma dor ou lesão?",type:"multi",grid:true,o:["Nenhuma","Ombro","Joelho","Lombar","Punho ou cotovelo","Tornozelo","Outra"]},
  {k:"suplementos",t:"Já usa algum suplemento?",type:"multi",grid:true,o:["Nenhum","Whey","Creatina","Cafeína / pré-treino","Multivitamínico","Outro"]},
